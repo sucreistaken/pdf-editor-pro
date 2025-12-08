@@ -1,0 +1,41 @@
+# PDF Tools - Required Python Packages
+
+# Core Flask
+Flask==3.0.0
+Flask-WTF==1.2.1
+werkzeug==3.0.1
+
+# PDF Processing
+PyPDF2==3.0.1
+PyMuPDF==1.24.0
+pdf2image==1.16.3
+pikepdf==8.10.1
+reportlab==4.0.7
+
+# Image Processing
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.1.0
+img2pdf==0.5.0
+
+# HTML to PDF
+playwright==1.58.0
+
+# Blog Engine
+python-frontmatter==1.1.0
+markdown==3.7
+
+# PDF to Excel
+pdfplumber==0.11.4
+openpyxl==3.1.2
+
+# PDF to Word
+pdf2docx==0.5.8
+
+# Configuration
+python-dotenv==1.0.1
+
+# Production
+flask-compress==1.14
+waitress==3.0.0
+gunicorn==22.0.0
