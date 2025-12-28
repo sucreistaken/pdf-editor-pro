@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {# SEO Title & Description #}
+    <title>{% block title %}{% if seo %}{{ seo.get('title', site_seo.site_name) }}{% else %}{{ site_seo.site_name }}{% endif %}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% if seo %}{{ seo.get('description', site_seo.site_description) }}{% else %}{{ site_seo.site_description }}{% endif %}{% endblock %}">
+    {% if seo and seo.get('keywords') %}<meta name="keywords" content="{{ seo.keywords }}">{% endif %}
+
+    {# Canonical URL #}
+    <link rel="canonical" href="{{ site_url }}{{ request.path }}">
+
+    {# Hreflang Tags #}
+    {% for sl in supported_languages %}
+    <link rel="alternate" hreflang="{{ sl }}" href="{{ site_url }}/{{ sl }}{{ request.path[3:] if request.path|length > 3 and request.path[:3] in ['/tr', '/en'] else request.path }}">
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ site_url }}/tr{{ request.path[3:] if request.path|length > 3 and request.path[:3] in ['/tr', '/en'] else request.path }}">
+
+    {# Open Graph #}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ site_name }}">
+    <meta property="og:title" content="{% if seo %}{{ seo.get('title', site_seo.site_name) }}{% else %}{{ site_seo.site_name }}{% endif %}">
+    <meta property="og:description" content="{% if seo %}{{ seo.get('description', site_seo.site_description) }}{% else %}{{ site_seo.site_description }}{% endif %}">
+    <meta property="og:url" content="{{ site_url }}{{ request.path }}">
+    <meta property="og:image" content="{{ site_url }}/static/og-image.png">
+    <meta property="og:locale" content="{{ 'tr_TR' if lang == 'tr' else 'en_US' }}">
+
+    {# Twitter Card #}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% if seo %}{{ seo.get('title', site_seo.site_name) }}{% else %}{{ site_seo.site_name }}{% endif %}">
+    <meta name="twitter:description" content="{% if seo %}{{ seo.get('description', site_seo.site_description) }}{% else %}{{ site_seo.site_description }}{% endif %}">
+    <meta name="twitter:image" content="{{ site_url }}/static/og-image.png">
+
+    {# CSRF Token #}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {# Favicon #}
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+
+    {# Noindex for error pages #}
+    {% block meta_robots %}{% endblock %}
+
+    {# Fonts #}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {# CSS #}
+    <link rel="stylesheet" href="/static/common.css?v={{ static_hash('common.css') }}">
+    {% block extra_css %}{% endblock %}
+
+    {# Schema.org JSON-LD #}
+    {% block schema_org %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "{{ site_name }}",
+        "url": "{{ site_url }}",
+        "description": "{{ site_seo.site_description }}",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "{{ site_name }}",
+            "url": "{{ site_url }}",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "{{ site_url }}/static/og-image.png",
+                "width": 1200,
+                "height": 630
+            }
+        }
+    }
+    </script>
+    {% endblock %}
+
+    {# BreadcrumbList Schema #}
+    {% block breadcrumb_schema %}
+    {% if tool_name is defined and tool_name %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "{{ _('nav_home') }}",
+                "item": "{{ site_url }}/{{ lang }}/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "{% if seo %}{{ seo.get('h1', tool_name) }}{% else %}{{ tool_name }}{% endif %}",
+                "item": "{{ site_url }}{{ request.path }}"
+            }
+        ]
+    }
+    </script>
+    {% endif %}
+    {% endblock %}
+
+    {# JS Translations for client-side #}
+    <script>
+        window.PDFEDIT_STRINGS = {{ js_translations|safe }};
+        window.PDFEDIT_LANG = "{{ lang }}";
+        {% if ga_measurement_id %}window.PDFEDIT_GA_ID = "{{ ga_measurement_id }}";{% endif %}
+    </script>
+</head>
+<body{% block body_attrs %}{% endblock %}>
+    <div class="container">
+        {# Navigation Bar #}
+        <div class="nav-bar">
+            <a href="/{{ lang }}/" class="back-link">
+                <span>&#8592;</span>
+                <span>{{ _('nav_home') }}</span>
+            </a>
+            <div class="nav-right">
+                {# Language Switcher #}
+                <div class="lang-switcher">
+                    {% for sl in supported_languages %}
+                    <a href="/{{ sl }}{{ request.path[3:] if request.path|length > 3 and request.path[:3] in ['/tr', '/en'] else '' }}"
+                       class="lang-btn{% if sl == lang %} active{% endif %}"
+                       title="{{ 'Turkce' if sl == 'tr' else 'English' }}">
+                        {{ sl|upper }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# Breadcrumb Navigation #}
+        {% if tool_name is defined and tool_name %}
+        <nav class="breadcrumb" aria-label="breadcrumb">
+            <a href="/{{ lang }}/">{{ _('nav_home') }}</a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">{% if seo %}{{ seo.get('h1', tool_name) }}{% else %}{{ tool_name }}{% endif %}</span>
+        </nav>
+        {% endif %}
+
+        <div class="header">
+            <h1>{% block header_icon %}{% endblock %} {% block header_title %}{% endblock %}</h1>
+            <p>{% block header_subtitle %}{% endblock %}</p>
+        </div>
+
+        {% block step_indicator %}{% endblock %}
+
+        {% block content %}{% endblock %}
+
+        {# FAQ Section (from SEO data) #}
+        {% if seo and seo.get('faq') %}
+        <div class="faq-section">
+            <h2 class="faq-title">{{ _('faq_title') }}</h2>
+            <div class="faq-list">
+                {% for item in seo.faq %}
+                <details class="faq-item">
+                    <summary class="faq-question">{{ item.q }}</summary>
+                    <div class="faq-answer">{{ item.a }}</div>
+                </details>
+                {% endfor %}
+            </div>
+        </div>
+        {# FAQ Schema.org #}
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {% for item in seo.faq %}
+                {
+                    "@type": "Question",
+                    "name": "{{ item.q }}",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "{{ item.a }}"
+                    }
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }
+        </script>
+        {% endif %}
+
+        {% block related_tools %}{% endblock %}
+
+        <div class="trust-footer">
+            <div class="trust-items">
+                {% for item in site_seo.trust_items %}
+                <div class="trust-item">
+                    <span class="trust-icon">{{ item.icon|safe }}</span>
+                    <span>{{ item.text }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# Cookie Consent Banner #}
+    <div class="cookie-consent" id="cookieConsent" style="display: none;">
+        <div class="cookie-content">
+            <p>{{ _('cookie_message') }}</p>
+            <div class="cookie-buttons">
+                <button class="cookie-btn cookie-accept" onclick="PDFEditAnalytics.acceptConsent()">{{ _('cookie_accept') }}</button>
+                <button class="cookie-btn cookie-reject" onclick="PDFEditAnalytics.rejectConsent()">{{ _('cookie_reject') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/common.js?v={{ static_hash('common.js') }}"></script>
+    <script src="/static/analytics.js?v={{ static_hash('analytics.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

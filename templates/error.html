@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if code == 404 %}{{ _('error_404') }}{% elif code == 413 %}{{ _('error_413') }}{% else %}{{ _('error_500') }}{% endif %} - {{ site_name }}
+{% endblock %}
+
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block header_icon %}&#9888;{% endblock %}
+{% block header_title %}{{ _('error') }} {{ code }}{% endblock %}
+{% block header_subtitle %}{% if code == 404 %}{{ _('error_404') }}{% elif code == 413 %}{{ _('error_413') }}{% else %}{{ _('error_500') }}{% endif %}{% endblock %}
+
+{% block breadcrumb_schema %}{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <p style="font-size: 4rem; margin-bottom: 20px;">
+        {% if code == 404 %}&#128269;{% elif code == 413 %}&#128230;{% else %}&#128295;{% endif %}
+    </p>
+    <p style="font-size: 1.1rem; color: rgba(255,255,255,0.8); margin-bottom: 30px;">{{ message }}</p>
+    <a href="/{{ lang }}/" class="download-btn" style="background: rgba(139, 92, 246, 0.9);">{{ _('error_go_home') }}</a>
+</div>
+{% endblock %}

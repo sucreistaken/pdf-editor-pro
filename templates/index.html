@@ -1,0 +1,804 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ site_seo.site_name }}{% endblock %}
+{% block description %}{{ site_seo.site_description }}{% endblock %}
+
+{% block schema_org %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{ site_name }}",
+    "url": "{{ site_url }}",
+    "description": "{{ site_seo.site_description }}",
+    "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ site_url }}/{{ lang }}/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+    }
+}
+</script>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "{{ _('nav_tools') }}",
+    "numberOfItems": 23,
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "url": "{{ site_url }}/{{ lang }}/merge", "name": "{{ _('merge_title') }}"},
+        {"@type": "ListItem", "position": 2, "url": "{{ site_url }}/{{ lang }}/split", "name": "{{ _('split_title') }}"},
+        {"@type": "ListItem", "position": 3, "url": "{{ site_url }}/{{ lang }}/compress", "name": "{{ _('compress_title') }}"},
+        {"@type": "ListItem", "position": 4, "url": "{{ site_url }}/{{ lang }}/encrypt", "name": "{{ _('encrypt_title') }}"},
+        {"@type": "ListItem", "position": 5, "url": "{{ site_url }}/{{ lang }}/watermark", "name": "{{ _('watermark_title') }}"},
+        {"@type": "ListItem", "position": 6, "url": "{{ site_url }}/{{ lang }}/rotate", "name": "{{ _('rotate_title') }}"},
+        {"@type": "ListItem", "position": 7, "url": "{{ site_url }}/{{ lang }}/extract-text", "name": "{{ _('extract_text_title') }}"},
+        {"@type": "ListItem", "position": 8, "url": "{{ site_url }}/{{ lang }}/extract-images", "name": "{{ _('extract_images_title') }}"},
+        {"@type": "ListItem", "position": 9, "url": "{{ site_url }}/{{ lang }}/img-to-pdf", "name": "{{ _('img_to_pdf_title') }}"},
+        {"@type": "ListItem", "position": 10, "url": "{{ site_url }}/{{ lang }}/pdf-to-image", "name": "{{ _('pdf_to_image_title') }}"},
+        {"@type": "ListItem", "position": 11, "url": "{{ site_url }}/{{ lang }}/html-to-pdf", "name": "{{ _('html_to_pdf_title') }}"},
+        {"@type": "ListItem", "position": 12, "url": "{{ site_url }}/{{ lang }}/reorder", "name": "{{ _('reorder_title') }}"},
+        {"@type": "ListItem", "position": 13, "url": "{{ site_url }}/{{ lang }}/repair", "name": "{{ _('repair_title') }}"},
+        {"@type": "ListItem", "position": 14, "url": "{{ site_url }}/{{ lang }}/metadata", "name": "{{ _('metadata_title') }}"},
+        {"@type": "ListItem", "position": 15, "url": "{{ site_url }}/{{ lang }}/numbering", "name": "{{ _('numbering_title') }}"},
+        {"@type": "ListItem", "position": 16, "url": "{{ site_url }}/{{ lang }}/logo-removal", "name": "{{ _('logo_removal_title') }}"},
+        {"@type": "ListItem", "position": 17, "url": "{{ site_url }}/{{ lang }}/crop", "name": "{{ _('crop_title') }}"},
+        {"@type": "ListItem", "position": 18, "url": "{{ site_url }}/{{ lang }}/compare", "name": "{{ _('compare_title') }}"},
+        {"@type": "ListItem", "position": 19, "url": "{{ site_url }}/{{ lang }}/pdf-to-excel", "name": "{{ _('pdf_to_excel_title') }}"},
+        {"@type": "ListItem", "position": 20, "url": "{{ site_url }}/{{ lang }}/form-fill", "name": "{{ _('form_fill_title') }}"},
+        {"@type": "ListItem", "position": 21, "url": "{{ site_url }}/{{ lang }}/pdf-to-word", "name": "{{ _('pdf_to_word_title') }}"},
+        {"@type": "ListItem", "position": 22, "url": "{{ site_url }}/{{ lang }}/pdf-to-pdfa", "name": "{{ _('pdf_to_pdfa_title') }}"}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block body_attrs %} class="index-page"{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Index page overrides - premium dark theme */
+    .index-page {
+        background:
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 56, 202, 0.25) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 40% at 80% 60%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 50% at 10% 80%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+            linear-gradient(180deg, #08080f 0%, #0a0a1a 40%, #0d0d20 70%, #08080f 100%);
+        background-attachment: fixed;
+        animation: none;
+    }
+    .index-page .nav-bar { display: none; }
+    .index-page .header { display: none; }
+    .index-page .trust-footer { display: none; }
+
+    .noise-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 1000; opacity: 0.015;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    .glow-orb {
+        position: fixed; border-radius: 50%; filter: blur(100px);
+        opacity: 0.4; pointer-events: none; z-index: 0;
+    }
+    .glow-orb-1 {
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+        top: -200px; left: -200px; animation: float1 20s ease-in-out infinite;
+    }
+    .glow-orb-2 {
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
+        bottom: -150px; right: -150px; animation: float2 25s ease-in-out infinite;
+    }
+    .glow-orb-3 {
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, var(--accent-pink) 0%, transparent 70%);
+        top: 50%; left: 50%; transform: translate(-50%, -50%);
+        animation: float3 30s ease-in-out infinite; opacity: 0.2;
+    }
+
+    @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(100px,50px); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-80px,-40px); } }
+    @keyframes float3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.2); } }
+
+    .index-header { text-align: center; margin-bottom: 40px; }
+
+    .logo-badge {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 8px 16px; background: var(--bg-card);
+        border: 1px solid var(--border-color); border-radius: 100px;
+        font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);
+        margin-bottom: 32px; animation: fadeIn 0.6s ease-out;
+    }
+    .logo-badge .pulse-dot {
+        width: 8px; height: 8px; background: var(--accent-green);
+        border-radius: 50%; animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.2); } }
+
+    .index-header h1 {
+        font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800;
+        letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 20px;
+        background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text; animation: fadeInUp 0.6s ease-out 0.1s backwards;
+    }
+
+    .index-subtitle {
+        font-size: 1.2rem; color: var(--text-secondary);
+        max-width: 500px; margin: 0 auto; line-height: 1.6;
+        animation: fadeInUp 0.6s ease-out 0.2s backwards;
+    }
+
+    /* Language switcher for index */
+    .index-lang-switcher {
+        display: flex; justify-content: flex-end; margin-bottom: 16px; gap: 6px;
+    }
+    .index-lang-switcher a {
+        padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+        color: var(--text-secondary); text-decoration: none;
+        border: 1px solid var(--border-color); transition: all 0.2s;
+    }
+    .index-lang-switcher a.active {
+        color: var(--accent-blue); border-color: var(--accent-blue);
+        background: rgba(59,130,246,0.1);
+    }
+    .index-lang-switcher a:hover:not(.active) {
+        border-color: rgba(255,255,255,0.2); color: var(--text-primary);
+    }
+
+    /* Search Box */
+    .search-box {
+        max-width: 500px; margin: 0 auto 50px; position: relative;
+        animation: fadeInUp 0.6s ease-out 0.3s backwards;
+    }
+    .search-box input {
+        width: 100%; padding: 16px 20px 16px 48px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 16px; color: white; font-size: 1rem;
+        font-family: inherit; outline: none; transition: all 0.3s;
+    }
+    .search-box input:focus {
+        border-color: rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.08);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .search-box input::placeholder { color: rgba(255,255,255,0.35); }
+    .search-box .search-icon {
+        position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+        color: rgba(255,255,255,0.35); pointer-events: none; font-size: 1.1rem;
+    }
+    .search-box .search-clear {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.5);
+        width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+        font-size: 1rem; display: none; align-items: center; justify-content: center;
+        transition: all 0.2s;
+    }
+    .search-box .search-clear:hover { background: rgba(255,255,255,0.2); }
+    .search-no-results {
+        text-align: center; padding: 40px; color: var(--text-secondary);
+        display: none; animation: fadeIn 0.3s ease;
+    }
+    .search-no-results .no-results-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* Category */
+    .category { margin-bottom: 40px; }
+    .category-header {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 16px; padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .category-icon { font-size: 1.3rem; }
+    .category-title {
+        font-size: 1.05rem; font-weight: 700; color: var(--text-primary);
+        letter-spacing: -0.01em;
+    }
+    .category-desc {
+        font-size: 0.8rem; color: var(--text-secondary); margin-left: auto;
+    }
+
+    .tools-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+
+    .tool-card {
+        background: var(--bg-card); border: 1px solid var(--border-color);
+        border-radius: 16px; padding: 28px; cursor: pointer;
+        text-decoration: none; color: inherit;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative; overflow: hidden;
+        opacity: 0; animation: fadeInUp 0.5s ease-out forwards;
+    }
+    .tool-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%);
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .tool-card:hover {
+        border-color: rgba(255,255,255,0.15);
+        transform: translateY(-6px);
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .tool-card:hover::before { opacity: 1; }
+    .tool-card.hidden { display: none; }
+
+    .tool-icon {
+        width: 56px; height: 56px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; margin-bottom: 20px; position: relative;
+    }
+
+    .tool-card h3 {
+        font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;
+        letter-spacing: -0.01em;
+    }
+    .tool-card p {
+        font-size: 0.9rem; color: var(--text-secondary);
+        line-height: 1.5; margin-bottom: 16px;
+    }
+    .tool-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border-color); border-radius: 6px;
+        font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .tool-tag-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Icon colors */
+    .icon-purple { background: rgba(139,92,246,0.15); }
+    .icon-blue   { background: rgba(59,130,246,0.15); }
+    .icon-pink   { background: rgba(236,72,153,0.15); }
+    .icon-green  { background: rgba(16,185,129,0.15); }
+    .icon-orange { background: rgba(249,115,22,0.15); }
+    .icon-cyan   { background: rgba(6,182,212,0.15); }
+    .dot-purple { background: var(--accent-purple); }
+    .dot-blue   { background: var(--accent-blue); }
+    .dot-pink   { background: var(--accent-pink); }
+    .dot-green  { background: var(--accent-green); }
+    .dot-orange { background: var(--accent-orange); }
+    .dot-cyan   { background: var(--accent-cyan); }
+
+    /* ===== Featured Hero Card ===== */
+    .featured-section {
+        margin-bottom: 56px;
+        animation: fadeInUp 0.7s ease-out 0.3s backwards;
+    }
+    .featured-card {
+        position: relative;
+        display: flex; align-items: center; gap: 40px;
+        padding: 40px 48px;
+        border-radius: 24px;
+        text-decoration: none; color: inherit;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(59,130,246,0.08) 50%, rgba(236,72,153,0.06) 100%);
+        border: 1px solid rgba(139,92,246,0.25);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .featured-card::before {
+        content: ''; position: absolute; inset: -1px;
+        border-radius: 25px; padding: 1px;
+        background: linear-gradient(135deg, rgba(139,92,246,0.6), rgba(59,130,246,0.4), rgba(236,72,153,0.5), rgba(139,92,246,0.6));
+        background-size: 300% 300%;
+        animation: borderGlow 6s ease-in-out infinite;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor; mask-composite: exclude;
+        pointer-events: none; z-index: 1;
+    }
+    .featured-card::after {
+        content: ''; position: absolute; inset: 0;
+        background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(139,92,246,0.08) 0%, transparent 60%);
+        pointer-events: none; transition: opacity 0.4s; opacity: 0;
+    }
+    .featured-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 24px 64px rgba(139,92,246,0.2), 0 8px 24px rgba(0,0,0,0.3);
+        border-color: rgba(139,92,246,0.4);
+    }
+    .featured-card:hover::after { opacity: 1; }
+
+    @keyframes borderGlow {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .featured-icon-wrap {
+        position: relative; flex-shrink: 0;
+    }
+    .featured-icon {
+        width: 88px; height: 88px; border-radius: 22px;
+        background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.15));
+        border: 1px solid rgba(139,92,246,0.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.4rem;
+        box-shadow: 0 8px 32px rgba(139,92,246,0.15);
+    }
+    .featured-icon-ring {
+        position: absolute; inset: -6px;
+        border-radius: 28px;
+        border: 2px solid rgba(139,92,246,0.15);
+        animation: ringPulse 3s ease-in-out infinite;
+    }
+    @keyframes ringPulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 0; transform: scale(1.08); }
+    }
+
+    .featured-body { flex: 1; position: relative; z-index: 2; }
+
+    .featured-badges {
+        display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .featured-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px; border-radius: 100px;
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .badge-ai {
+        background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(236,72,153,0.2));
+        color: #c084fc;
+        border: 1px solid rgba(139,92,246,0.3);
+    }
+    .badge-ai .badge-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #a78bfa;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    .badge-featured {
+        background: rgba(251,191,36,0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(251,191,36,0.25);
+    }
+
+    .featured-body h2 {
+        font-size: 1.6rem; font-weight: 800; margin-bottom: 8px;
+        letter-spacing: -0.02em; color: #fff;
+    }
+    .featured-body .featured-desc {
+        font-size: 1rem; color: rgba(255,255,255,0.65);
+        line-height: 1.6; margin-bottom: 20px; max-width: 480px;
+    }
+
+    .featured-cta {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 12px 28px; border-radius: 12px;
+        background: linear-gradient(135deg, #7c3aed, #6366f1);
+        color: #fff; font-weight: 700; font-size: 0.95rem;
+        border: none; letter-spacing: -0.01em;
+        box-shadow: 0 4px 16px rgba(124,58,237,0.3);
+        transition: all 0.3s;
+    }
+    .featured-card:hover .featured-cta {
+        background: linear-gradient(135deg, #8b5cf6, #818cf8);
+        box-shadow: 0 6px 24px rgba(124,58,237,0.4);
+        transform: translateX(4px);
+    }
+    .featured-cta-arrow {
+        transition: transform 0.3s;
+    }
+    .featured-card:hover .featured-cta-arrow {
+        transform: translateX(4px);
+    }
+
+    .featured-stats {
+        display: flex; gap: 32px; margin-top: 20px;
+    }
+    .featured-stat {
+        display: flex; flex-direction: column; gap: 2px;
+    }
+    .featured-stat-value {
+        font-size: 0.95rem; font-weight: 700; color: rgba(255,255,255,0.9);
+    }
+    .featured-stat-label {
+        font-size: 0.72rem; color: rgba(255,255,255,0.4);
+        text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 700px) {
+        .featured-card {
+            flex-direction: column; text-align: center;
+            padding: 32px 24px; gap: 24px;
+        }
+        .featured-body .featured-desc { margin-left: auto; margin-right: auto; }
+        .featured-badges { justify-content: center; }
+        .featured-stats { justify-content: center; gap: 24px; }
+    }
+
+    /* How it works */
+    .how-section {
+        margin: 60px 0; text-align: center;
+        animation: fadeInUp 0.6s ease-out 0.4s backwards;
+    }
+    .how-section h2 {
+        font-size: 1.5rem; font-weight: 700; margin-bottom: 32px;
+        color: var(--text-primary);
+    }
+    .how-steps {
+        display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+    }
+    .how-step {
+        text-align: center; max-width: 200px;
+    }
+    .how-step-icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; margin: 0 auto 16px;
+    }
+    .how-step h3 {
+        font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);
+    }
+    .how-step p {
+        font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;
+    }
+
+    /* Footer */
+    .index-footer {
+        text-align: center; margin-top: 80px; padding-top: 40px;
+        border-top: 1px solid var(--border-color);
+    }
+    .index-footer p { color: var(--text-secondary); font-size: 0.85rem; }
+    .index-trust-badges {
+        display: flex; justify-content: center; gap: 24px;
+        margin-top: 20px; flex-wrap: wrap;
+    }
+    .index-trust-badge {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.8rem; color: var(--text-secondary);
+    }
+
+    @media (max-width: 900px) {
+        .tools-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+        .tools-grid { grid-template-columns: 1fr; }
+        .index-header { margin-bottom: 30px; }
+        .category-desc { display: none; }
+        .index-trust-badges { flex-direction: column; align-items: center; }
+        .how-steps { flex-direction: column; align-items: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="noise-overlay"></div>
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+
+    {# Language switcher for index #}
+    <div class="index-lang-switcher">
+        {% for sl in supported_languages %}
+        <a href="/{{ sl }}/"
+           class="{% if sl == lang %}active{% endif %}"
+           title="{{ 'Turkce' if sl == 'tr' else 'English' }}">{{ sl|upper }}</a>
+        {% endfor %}
+    </div>
+
+    <header class="index-header">
+        <div class="logo-badge">
+            <span class="pulse-dot"></span>
+            {{ _('all_tools_ready') }}
+        </div>
+        <h1>{{ site_seo.hero_title }}</h1>
+        <p class="index-subtitle">{{ site_seo.hero_subtitle }}</p>
+    </header>
+
+    {# Search #}
+    <div class="search-box">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" id="searchInput" placeholder="{{ _('search_placeholder') }}">
+        <button class="search-clear" id="searchClear">&times;</button>
+    </div>
+    <div class="search-no-results" id="noResults">
+        <div class="no-results-icon">&#128269;</div>
+        <p>{{ _('search_no_results') }}</p>
+    </div>
+
+    {# Featured Tool - Logo Removal #}
+    <div class="featured-section" id="featuredSection" data-keywords="logo sil kaldir yapay zeka ai filigran temizle remove watermark">
+        <a href="/logo-removal" class="featured-card">
+            <div class="featured-icon-wrap">
+                <div class="featured-icon-ring"></div>
+                <div class="featured-icon">&#127912;</div>
+            </div>
+            <div class="featured-body">
+                <div class="featured-badges">
+                    <span class="featured-badge badge-ai"><span class="badge-dot"></span>{{ _('tag_ai') }}</span>
+                    <span class="featured-badge badge-featured">&#9733; {{ _('tag_popular') }}</span>
+                </div>
+                <h2>{{ _('logo_removal_title') }}</h2>
+                <p class="featured-desc">{{ _('logo_removal_subtitle') }}</p>
+                <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                    <span class="featured-cta">
+                        {{ _('try_now') if _('try_now') != 'try_now' else 'Hemen Dene' }}
+                        <span class="featured-cta-arrow">&#8594;</span>
+                    </span>
+                    <div class="featured-stats">
+                        <div class="featured-stat">
+                            <span class="featured-stat-value">SIFT</span>
+                            <span class="featured-stat-label">Algoritma</span>
+                        </div>
+                        <div class="featured-stat">
+                            <span class="featured-stat-value">&#9889; Hızlı</span>
+                            <span class="featured-stat-label">İşlem Süresi</span>
+                        </div>
+                        <div class="featured-stat">
+                            <span class="featured-stat-value">%100</span>
+                            <span class="featured-stat-label">Ücretsiz</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <main id="toolsMain">
+        {# Duzenle / Edit #}
+        <div class="category" data-category="edit">
+            <div class="category-header">
+                <span class="category-icon">&#9999;&#65039;</span>
+                <span class="category-title">{{ _('cat_edit') }}</span>
+                <span class="category-desc">{{ _('cat_edit_desc') }}</span>
+            </div>
+            <div class="tools-grid">
+                <a href="/{{ lang }}/merge" class="tool-card" data-keywords="birlestir merge birlestirme pdf dosya ekle combine" style="animation-delay: 0.1s">
+                    <div class="tool-icon icon-blue">&#128279;</div>
+                    <h3>{{ _('merge_title') }}</h3>
+                    <p>{{ _('merge_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-blue"></div>{{ _('tag_popular') }}</div>
+                </a>
+                <a href="/{{ lang }}/split" class="tool-card" data-keywords="bol split bolme sayfa ayir separate" style="animation-delay: 0.15s">
+                    <div class="tool-icon icon-pink">&#9986;&#65039;</div>
+                    <h3>{{ _('split_title') }}</h3>
+                    <p>{{ _('split_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_fast') }}</div>
+                </a>
+                <a href="/{{ lang }}/reorder" class="tool-card" data-keywords="sirala reorder sayfa siralama surukle birak rearrange" style="animation-delay: 0.2s">
+                    <div class="tool-icon icon-purple">&#128209;</div>
+                    <h3>{{ _('reorder_title') }}</h3>
+                    <p>{{ _('reorder_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-purple"></div>{{ _('tag_edit') }}</div>
+                </a>
+                <a href="/{{ lang }}/rotate" class="tool-card" data-keywords="dondur rotate dondurme aci 90 180 270" style="animation-delay: 0.25s">
+                    <div class="tool-icon icon-orange">&#128260;</div>
+                    <h3>{{ _('rotate_title') }}</h3>
+                    <p>{{ _('rotate_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-orange"></div>{{ _('tag_fast') }}</div>
+                </a>
+                <a href="/{{ lang }}/crop" class="tool-card" data-keywords="kirp crop kenar bosluk margin beyaz trim" style="animation-delay: 0.3s">
+                    <div class="tool-icon icon-green">&#9986;&#65039;</div>
+                    <h3>{{ _('crop_title') }}</h3>
+                    <p>{{ _('crop_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-green"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/compare" class="tool-card" data-keywords="karsilastir compare fark diff iki dosya" style="animation-delay: 0.35s">
+                    <div class="tool-icon icon-cyan">&#128203;</div>
+                    <h3>{{ _('compare_title') }}</h3>
+                    <p>{{ _('compare_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-cyan"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/form-fill" class="tool-card" data-keywords="form doldur fill alan field doldurucu" style="animation-delay: 0.4s">
+                    <div class="tool-icon icon-pink">&#128221;</div>
+                    <h3>{{ _('form_fill_title') }}</h3>
+                    <p>{{ _('form_fill_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_new') }}</div>
+                </a>
+            </div>
+        </div>
+
+        {# Donustur / Convert #}
+        <div class="category" data-category="convert">
+            <div class="category-header">
+                <span class="category-icon">&#128260;</span>
+                <span class="category-title">{{ _('cat_convert') }}</span>
+                <span class="category-desc">{{ _('cat_convert_desc') }}</span>
+            </div>
+            <div class="tools-grid">
+                <a href="/{{ lang }}/img-to-pdf" class="tool-card" data-keywords="gorsel resim image pdf donustur foto jpg png convert" style="animation-delay: 0.1s">
+                    <div class="tool-icon icon-green">&#128444;&#65039;</div>
+                    <h3>{{ _('img_to_pdf_title') }}</h3>
+                    <p>{{ _('img_to_pdf_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-green"></div>{{ _('tag_easy') }}</div>
+                </a>
+                <a href="/{{ lang }}/pdf-to-image" class="tool-card" data-keywords="pdf gorsel resim image donustur png jpg webp convert" style="animation-delay: 0.15s">
+                    <div class="tool-icon icon-cyan">&#128248;</div>
+                    <h3>{{ _('pdf_to_image_title') }}</h3>
+                    <p>{{ _('pdf_to_image_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-cyan"></div>{{ _('tag_convert') }}</div>
+                </a>
+                <a href="/{{ lang }}/html-to-pdf" class="tool-card" data-keywords="html web sayfa pdf donustur url kod convert webpage" style="animation-delay: 0.2s">
+                    <div class="tool-icon icon-blue">&#127760;</div>
+                    <h3>{{ _('html_to_pdf_title') }}</h3>
+                    <p>{{ _('html_to_pdf_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-blue"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/pdf-to-excel" class="tool-card" data-keywords="excel xlsx tablo table donustur convert spreadsheet" style="animation-delay: 0.25s">
+                    <div class="tool-icon icon-green">&#128202;</div>
+                    <h3>{{ _('pdf_to_excel_title') }}</h3>
+                    <p>{{ _('pdf_to_excel_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-green"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/pdf-to-word" class="tool-card" data-keywords="word docx belge donustur convert document" style="animation-delay: 0.3s">
+                    <div class="tool-icon icon-blue">&#128196;</div>
+                    <h3>{{ _('pdf_to_word_title') }}</h3>
+                    <p>{{ _('pdf_to_word_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-blue"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/pdf-to-pdfa" class="tool-card" data-keywords="pdf/a pdfa arsiv archival iso standart donustur" style="animation-delay: 0.35s">
+                    <div class="tool-icon icon-purple">&#128196;</div>
+                    <h3>{{ _('pdf_to_pdfa_title') }}</h3>
+                    <p>{{ _('pdf_to_pdfa_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-purple"></div>{{ _('tag_new') }}</div>
+                </a>
+            </div>
+        </div>
+
+        {# Guvenlik / Security #}
+        <div class="category" data-category="security">
+            <div class="category-header">
+                <span class="category-icon">&#128274;</span>
+                <span class="category-title">{{ _('cat_security') }}</span>
+                <span class="category-desc">{{ _('cat_security_desc') }}</span>
+            </div>
+            <div class="tools-grid">
+                <a href="/{{ lang }}/encrypt" class="tool-card" data-keywords="sifre sifrele encrypt guvenlik koruma kilit password protect" style="animation-delay: 0.1s">
+                    <div class="tool-icon icon-green">&#128274;</div>
+                    <h3>{{ _('encrypt_title') }}</h3>
+                    <p>{{ _('encrypt_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-green"></div>{{ _('tag_secure') }}</div>
+                </a>
+                <a href="/{{ lang }}/watermark" class="tool-card" data-keywords="filigran watermark damga metin gorsel yazi stamp" style="animation-delay: 0.15s">
+                    <div class="tool-icon icon-purple">&#128167;</div>
+                    <h3>{{ _('watermark_title') }}</h3>
+                    <p>{{ _('watermark_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-purple"></div>{{ _('tag_pro') }}</div>
+                </a>
+                <a href="/{{ lang }}/metadata" class="tool-card" data-keywords="metadata bilgi yazar baslik olusturma gizlilik properties info" style="animation-delay: 0.2s">
+                    <div class="tool-icon icon-pink">&#127991;&#65039;</div>
+                    <h3>{{ _('metadata_title') }}</h3>
+                    <p>{{ _('metadata_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_privacy') }}</div>
+                </a>
+            </div>
+        </div>
+
+        {# Cikar / Extract #}
+        <div class="category" data-category="extract">
+            <div class="category-header">
+                <span class="category-icon">&#128228;</span>
+                <span class="category-title">{{ _('cat_extract') }}</span>
+                <span class="category-desc">{{ _('cat_extract_desc') }}</span>
+            </div>
+            <div class="tools-grid">
+                <a href="/{{ lang }}/extract-text" class="tool-card" data-keywords="metin text cikar kopya yazi icerik extract copy" style="animation-delay: 0.1s">
+                    <div class="tool-icon icon-blue">&#128221;</div>
+                    <h3>{{ _('extract_text_title') }}</h3>
+                    <p>{{ _('extract_text_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-blue"></div>{{ _('tag_extract') }}</div>
+                </a>
+                <a href="/{{ lang }}/extract-images" class="tool-card" data-keywords="gorsel resim image cikar indir kaydet foto extract save" style="animation-delay: 0.15s">
+                    <div class="tool-icon icon-orange">&#128444;&#65039;</div>
+                    <h3>{{ _('extract_images_title') }}</h3>
+                    <p>{{ _('extract_images_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-orange"></div>{{ _('tag_export') }}</div>
+                </a>
+            </div>
+        </div>
+
+        {# Optimize #}
+        <div class="category" data-category="optimize">
+            <div class="category-header">
+                <span class="category-icon">&#9889;</span>
+                <span class="category-title">{{ _('cat_optimize') }}</span>
+                <span class="category-desc">{{ _('cat_optimize_desc') }}</span>
+            </div>
+            <div class="tools-grid">
+                <a href="/{{ lang }}/compress" class="tool-card" data-keywords="sikistir compress kucult boyut optimize reduce size" style="animation-delay: 0.1s">
+                    <div class="tool-icon icon-cyan">&#128230;</div>
+                    <h3>{{ _('compress_title') }}</h3>
+                    <p>{{ _('compress_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-cyan"></div>{{ _('tag_optimize') }}</div>
+                </a>
+                <a href="/{{ lang }}/numbering" class="tool-card" data-keywords="numara numaralandirma sayfa sayi number page" style="animation-delay: 0.15s">
+                    <div class="tool-icon icon-pink">&#128290;</div>
+                    <h3>{{ _('numbering_title') }}</h3>
+                    <p>{{ _('numbering_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/repair" class="tool-card" data-keywords="onar repair bozuk hasar kurtarma tamir fix corrupted" style="animation-delay: 0.2s">
+                    <div class="tool-icon icon-orange">&#128295;</div>
+                    <h3>{{ _('repair_title') }}</h3>
+                    <p>{{ _('repair_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-orange"></div>{{ _('tag_recovery') }}</div>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    {# How It Works #}
+    <section class="how-section">
+        <h2>{{ _('how_it_works') }}</h2>
+        <div class="how-steps">
+            {% for step in site_seo.how_it_works %}
+            <div class="how-step">
+                <div class="how-step-icon">{{ step.icon|safe }}</div>
+                <h3>{{ step.title }}</h3>
+                <p>{{ step.desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# Footer #}
+    <footer class="index-footer">
+        <p>{{ _('footer_tagline') }}</p>
+        <div class="index-trust-badges">
+            {% for item in site_seo.trust_items %}
+            <div class="index-trust-badge">{{ item.icon|safe }} {{ item.text }}</div>
+            {% endfor %}
+        </div>
+    </footer>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const noResults = document.getElementById('noResults');
+    const allCards = document.querySelectorAll('.tool-card');
+    const categories = document.querySelectorAll('.category');
+    const featuredSection = document.getElementById('featuredSection');
+
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.toLowerCase().trim();
+        searchClear.style.display = q ? 'flex' : 'none';
+
+        if (!q) {
+            allCards.forEach(c => c.classList.remove('hidden'));
+            categories.forEach(c => c.style.display = '');
+            if (featuredSection) featuredSection.style.display = '';
+            noResults.style.display = 'none';
+            return;
+        }
+
+        let found = 0;
+
+        // Featured card search
+        if (featuredSection) {
+            const fKeywords = (featuredSection.dataset.keywords || '') + ' ' + featuredSection.textContent.toLowerCase();
+            const fMatch = q.split(/\s+/).every(word => fKeywords.includes(word));
+            featuredSection.style.display = fMatch ? '' : 'none';
+            if (fMatch) found++;
+        }
+
+        allCards.forEach(card => {
+            const keywords = (card.dataset.keywords || '') + ' ' + card.textContent.toLowerCase();
+            const match = q.split(/\s+/).every(word => keywords.includes(word));
+            card.classList.toggle('hidden', !match);
+            if (match) found++;
+        });
+
+        categories.forEach(cat => {
+            const visibleCards = cat.querySelectorAll('.tool-card:not(.hidden)');
+            cat.style.display = visibleCards.length === 0 ? 'none' : '';
+        });
+
+        noResults.style.display = found === 0 ? 'block' : 'none';
+    });
+
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+        searchInput.focus();
+    });
+</script>
+{% endblock %}

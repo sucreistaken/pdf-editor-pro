@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Logo Temizleyici</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <div class="container">
+        <a href="/" class="back-link">← Tüm Araçlar</a>
+
+        <header class="header">
+            <h1>PDF Logo Temizleyici</h1>
+            <p class="subtitle">PDF dosyalarınızdan logo ve watermarkları temizleyin</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Upload Form -->
+            <div id="uploadSection" class="section-card">
+                <form id="uploadForm" class="upload-form">
+                    <div class="filename-section">
+                        <label for="customFilename" class="input-label">Çıktı Dosya Adı</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="customFilename" name="custom_filename"
+                                placeholder="örn: temizlenmis_dosya" class="text-input">
+                            <span class="input-suffix">.pdf</span>
+                        </div>
+                    </div>
+
+                    <div class="upload-grid">
+                        <div class="upload-card" id="pdfDropZone">
+                            <input type="file" id="pdfInput" name="pdf_file" accept=".pdf" hidden>
+                            <div class="upload-icon">📄</div>
+                            <h3>PDF Dosyası</h3>
+                            <p class="upload-hint">Tıklayın veya sürükleyin</p>
+                            <span class="file-name" id="pdfFileName">Dosya seçilmedi</span>
+                        </div>
+
+                        <div class="upload-card" id="logoDropZone">
+                            <input type="file" id="logoInput" name="logo_file" accept=".png,.jpg,.jpeg" hidden>
+                            <div class="upload-icon">🖼️</div>
+                            <h3>Silinecek Logo</h3>
+                            <p class="upload-hint">PNG, JPG veya JPEG</p>
+                            <span class="file-name" id="logoFileName">Dosya seçilmedi</span>
+                            <div class="logo-preview" id="logoPreview"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                        🚀 Logo Temizle
+                    </button>
+                </form>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="progressSection" class="section-card hidden">
+                <div class="progress-header">
+                    <h2>İşlem Yapılıyor</h2>
+                    <span class="progress-percent" id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="page-counter" id="pageCounter">Hazırlanıyor...</div>
+                <div class="log-container">
+                    <div class="log-header">İşlem Logları</div>
+                    <div class="log-content" id="logContent"></div>
+                </div>
+            </div>
+
+            <!-- Success Section -->
+            <div id="successSection" class="section-card hidden">
+                <div class="success-container">
+                    <div class="success-icon">✅</div>
+                    <h3>Tamamlandı!</h3>
+                    <p>PDF dosyanız başarıyla temizlendi</p>
+                    <a href="#" class="download-btn" id="downloadBtn">
+                        📥 <span id="downloadFileName">PDF İndir</span>
+                    </a>
+                    <button class="new-task-btn" onclick="resetAll()">Yeni İşlem</button>
+                </div>
+            </div>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="section-card hidden">
+                <div class="error-container">
+                    <div class="error-icon">❌</div>
+                    <h3>Hata Oluştu</h3>
+                    <p id="errorMessage">Lütfen tekrar deneyin</p>
+                    <button class="retry-btn" onclick="resetAll()">Tekrar Dene</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
