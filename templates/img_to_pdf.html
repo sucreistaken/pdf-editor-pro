@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('img_to_pdf_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}🖼️{% endblock %}
+{% block header_title %}{{ _('img_to_pdf_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('img_to_pdf_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #9f1239 0%, #b45309 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .preview-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 1;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s;
+        cursor: grab;
+    }
+
+    .preview-item:active {
+        cursor: grabbing;
+    }
+
+    .preview-item:hover {
+        transform: scale(1.03);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .preview-item.dragging {
+        opacity: 0.5;
+    }
+
+    .preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .preview-item .remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(239, 68, 68, 0.95);
+        backdrop-filter: blur(10px);
+        color: white;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        transition: all 0.3s;
+        line-height: 1;
+    }
+
+    .preview-item .remove:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .preview-item .img-order {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .preview-item .img-name {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 6px 8px;
+        background: linear-gradient(transparent, rgba(0,0,0,0.7));
+        font-size: 0.7rem;
+        color: rgba(255,255,255,0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .options-grid .form-group {
+        margin-bottom: 0;
+    }
+
+    .slider-value {
+        display: inline-block;
+        margin-left: 8px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .image-count {
+        margin-top: 15px;
+        padding: 12px 18px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: white;
+        display: none;
+    }
+
+    @media (max-width: 600px) {
+        .options-grid {
+            grid-template-columns: 1fr;
+        }
+        .preview-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="70" height="70">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+            <path d="M21 15L16 10L5 21" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h3>{{ _('img_to_pdf_drag') }}</h3>
+        <p>{{ _('img_to_pdf_formats') }}</p>
+        <span class="file-limit">{{ _('max_file_size') }}</span>
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png">
+    </div>
+
+    <div class="image-count" id="imageCount"></div>
+
+    <div class="preview-grid" id="previewGrid"></div>
+
+    <div class="options-grid">
+        <div class="form-group">
+            <label>{{ _('img_to_pdf_page_size') }}</label>
+            <select id="pageSize">
+                <option value="A4">A4</option>
+                <option value="Letter">Letter</option>
+                <option value="original">{{ _('img_to_pdf_original_size') }}</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>{{ _('img_to_pdf_orientation') }}</label>
+            <select id="orientation">
+                <option value="portrait">{{ _('img_to_pdf_portrait') }}</option>
+                <option value="landscape">{{ _('img_to_pdf_landscape') }}</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px;">
+        <label>{{ _('img_to_pdf_margin') }}: <span class="slider-value" id="marginValue">10 mm</span></label>
+        <input type="range" id="marginSlider" min="0" max="30" value="10">
+    </div>
+
+    <div class="form-group">
+        <label>{{ _('img_to_pdf_output_name') }}</label>
+        <input type="text" id="outputFilename" placeholder="ornegin: gorsellerim.pdf">
+    </div>
+
+    <button class="btn-primary" id="convertBtn" disabled>{{ _('img_to_pdf_btn') }}</button>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewGrid = document.getElementById('previewGrid');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultDiv = document.getElementById('result');
+    const imageCountDiv = document.getElementById('imageCount');
+    const marginSlider = document.getElementById('marginSlider');
+    const marginValue = document.getElementById('marginValue');
+    let selectedFiles = [];
+
+    // Drop zone kurulumu
+    setupDropZone(dropZone, fileInput, {
+        accept: '.jpg,.jpeg,.png',
+        multiple: true,
+        onFiles: (files) => {
+            for (let f of files) {
+                selectedFiles.push(f);
+            }
+            updatePreviews();
+            steps.setStep(1);
+        }
+    });
+
+    // Margin slider
+    marginSlider.addEventListener('input', () => {
+        marginValue.textContent = marginSlider.value + ' mm';
+    });
+
+    function updatePreviews() {
+        previewGrid.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.draggable = true;
+                div.dataset.index = index;
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="${file.name}">
+                    <button class="remove" onclick="removeFile(${index})" title="${__('remove')}">&times;</button>
+                    <span class="img-order">${index + 1}</span>
+                    <span class="img-name">${file.name} (${formatSize(file.size)})</span>
+                `;
+                previewGrid.appendChild(div);
+
+                // Enable drag-sort after all items are rendered
+                if (previewGrid.children.length === selectedFiles.length) {
+                    enableDragSort(previewGrid, '.preview-item', onReorder);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        convertBtn.disabled = selectedFiles.length === 0;
+
+        if (selectedFiles.length > 0) {
+            imageCountDiv.style.display = 'block';
+            imageCountDiv.textContent = __('img_to_pdf_count', {count: selectedFiles.length});
+        } else {
+            imageCountDiv.style.display = 'none';
+        }
+    }
+
+    function onReorder() {
+        // Read the new order from DOM
+        const items = previewGrid.querySelectorAll('.preview-item');
+        const newFiles = [];
+        items.forEach((item, i) => {
+            const oldIndex = parseInt(item.dataset.index);
+            newFiles.push(selectedFiles[oldIndex]);
+            // Update the order badge
+            const orderBadge = item.querySelector('.img-order');
+            if (orderBadge) orderBadge.textContent = i + 1;
+        });
+        selectedFiles = newFiles;
+        // Update data-index attributes
+        items.forEach((item, i) => {
+            item.dataset.index = i;
+            // Update remove button index
+            const removeBtn = item.querySelector('.remove');
+            if (removeBtn) removeBtn.setAttribute('onclick', `removeFile(${i})`);
+        });
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        updatePreviews();
+    }
+
+    convertBtn.addEventListener('click', async () => {
+        if (selectedFiles.length === 0) return;
+
+        convertBtn.disabled = true;
+        convertBtn.textContent = __('img_to_pdf_btn_loading');
+        resultDiv.className = 'result';
+
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('image_files', file);
+        });
+        formData.append('page_size', document.getElementById('pageSize').value);
+        formData.append('orientation', document.getElementById('orientation').value);
+        formData.append('margin', marginSlider.value);
+
+        const customName = document.getElementById('outputFilename').value.trim();
+        if (customName) {
+            formData.append('output_filename', customName.endsWith('.pdf') ? customName : customName + '.pdf');
+        }
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/img-to-pdf', formData, {
+                onProgress: (percent, loaded, total) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = `${__('uploading')} ${percent}% (${formatSize(loaded)} / ${formatSize(total)})`;
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = `
+                    <h3>${__('img_to_pdf_complete')}</h3>
+                    <p>${__('img_to_pdf_pages_created', {count: data.pages})}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'img-to-pdf');
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.textContent = __('img_to_pdf_btn');
+        }
+    });
+</script>
+{% endblock %}

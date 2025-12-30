@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('encrypt_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}&#128274;{% endblock %}
+{% block header_title %}{{ _('encrypt_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('encrypt_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #1e293b 0%, #831843 50%, #9f1239 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-selected-info {
+        margin-top: 15px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: white;
+        display: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .file-selected-info .file-icon {
+        margin-right: 8px;
+    }
+
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 4px;
+        transition: color 0.3s;
+    }
+
+    .password-toggle:hover {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .strength-label {
+        font-size: 0.8rem;
+        margin-top: 6px;
+        font-weight: 600;
+        transition: color 0.3s;
+    }
+
+    .permissions-section {
+        margin-top: 20px;
+    }
+
+    .permissions-section label.section-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: white;
+    }
+
+    .permission-summary {
+        margin-top: 12px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .perm-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .perm-item .perm-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+    }
+
+    .perm-item.allowed .perm-icon {
+        background: rgba(16, 185, 129, 0.3);
+        color: #10b981;
+    }
+
+    .perm-item.denied .perm-icon {
+        background: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    .perm-item.allowed {
+        color: rgba(16, 185, 129, 0.9);
+    }
+
+    .perm-item.denied {
+        color: rgba(239, 68, 68, 0.7);
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="encrypt">{{ _('tab_encrypt') }}</button>
+        <button class="tab-btn" data-tab="decrypt">{{ _('tab_decrypt') }}</button>
+    </div>
+
+    <!-- Tab 1: Encrypt -->
+    <div class="tab-content active" id="tab-encrypt">
+        <div class="drop-zone" id="encryptDropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('encrypt_select_file') }}</h3>
+            <p>{{ _('upload_drag') }}</p>
+            <span class="file-limit">{{ _('upload_limit') }}</span>
+        </div>
+        <input type="file" id="encryptFileInput" accept=".pdf">
+
+        <div class="file-selected-info" id="encryptFileInfo">
+            <span class="file-icon">&#128196;</span>
+            <span id="encryptFileName"></span>
+        </div>
+        <div class="inline-preview" id="encryptPreview"></div>
+
+        <!-- Password -->
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="encryptPassword">{{ _('encrypt_password') }}</label>
+            <div class="password-wrapper">
+                <input type="password" id="encryptPassword" placeholder="{{ _('encrypt_password_placeholder') }}">
+                <button type="button" class="password-toggle" id="encTogglePass" title="{{ _('encrypt_toggle_password') }}">&#128065;</button>
+            </div>
+            <div class="password-strength" id="passwordStrength">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel"></div>
+        </div>
+
+        <!-- Permissions -->
+        <div class="permissions-section">
+            <label class="section-label">{{ _('encrypt_permissions') }}</label>
+            <div class="checkbox-group">
+                <label class="checkbox-item active" id="permPrint">
+                    <input type="checkbox" id="allowPrint" checked>
+                    <span>{{ _('encrypt_allow_print') }}</span>
+                </label>
+                <label class="checkbox-item" id="permCopy">
+                    <input type="checkbox" id="allowCopy">
+                    <span>{{ _('encrypt_allow_copy') }}</span>
+                </label>
+                <label class="checkbox-item" id="permModify">
+                    <input type="checkbox" id="allowModify">
+                    <span>{{ _('encrypt_allow_modify') }}</span>
+                </label>
+            </div>
+
+            <!-- Permission Summary -->
+            <div class="permission-summary" id="permissionSummary">
+                <div class="perm-item allowed" id="summaryPrint">
+                    <span class="perm-icon">&#10003;</span>
+                    <span>{{ _('encrypt_allow_print') }}</span>
+                </div>
+                <div class="perm-item denied" id="summaryCopy">
+                    <span class="perm-icon">&#10007;</span>
+                    <span>{{ _('encrypt_allow_copy') }}</span>
+                </div>
+                <div class="perm-item denied" id="summaryModify">
+                    <span class="perm-icon">&#10007;</span>
+                    <span>{{ _('encrypt_allow_modify') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="encryptBtn" disabled>
+            {{ _('encrypt_btn') }}
+        </button>
+    </div>
+
+    <!-- Tab 2: Decrypt -->
+    <div class="tab-content" id="tab-decrypt">
+        <div class="drop-zone" id="decryptDropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('decrypt_select_file') }}</h3>
+            <p>{{ _('decrypt_select_hint') }}</p>
+            <span class="file-limit">{{ _('upload_limit') }}</span>
+        </div>
+        <input type="file" id="decryptFileInput" accept=".pdf">
+
+        <div class="file-selected-info" id="decryptFileInfo">
+            <span class="file-icon">&#128196;</span>
+            <span id="decryptFileName"></span>
+        </div>
+        <div class="inline-preview" id="decryptPreview"></div>
+
+        <!-- Password -->
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="decryptPassword">{{ _('decrypt_password') }}</label>
+            <div class="password-wrapper">
+                <input type="password" id="decryptPassword" placeholder="{{ _('decrypt_password_placeholder') }}">
+                <button type="button" class="password-toggle" id="decTogglePass" title="{{ _('encrypt_toggle_password') }}">&#128065;</button>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="decryptBtn" disabled>
+            {{ _('decrypt_btn') }}
+        </button>
+    </div>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    // Elements - Encrypt tab
+    const encryptDropZone = document.getElementById('encryptDropZone');
+    const encryptFileInput = document.getElementById('encryptFileInput');
+    const encryptFileInfo = document.getElementById('encryptFileInfo');
+    const encryptFileName = document.getElementById('encryptFileName');
+    const encryptPassword = document.getElementById('encryptPassword');
+    const encTogglePass = document.getElementById('encTogglePass');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const strengthLabel = document.getElementById('strengthLabel');
+    const allowPrint = document.getElementById('allowPrint');
+    const allowCopy = document.getElementById('allowCopy');
+    const allowModify = document.getElementById('allowModify');
+    const encryptBtn = document.getElementById('encryptBtn');
+
+    // Elements - Decrypt tab
+    const decryptDropZone = document.getElementById('decryptDropZone');
+    const decryptFileInput = document.getElementById('decryptFileInput');
+    const decryptFileInfo = document.getElementById('decryptFileInfo');
+    const decryptFileName = document.getElementById('decryptFileName');
+    const decryptPassword = document.getElementById('decryptPassword');
+    const decTogglePass = document.getElementById('decTogglePass');
+    const decryptBtn = document.getElementById('decryptBtn');
+
+    // Common elements
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const result = document.getElementById('result');
+
+    let encryptFile = null;
+    let decryptFile = null;
+
+    // Setup tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    setupTabs(tabBtns, tabContents);
+
+    // Hide result on tab switch
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            result.classList.remove('show');
+        });
+    });
+
+    // ===== ENCRYPT TAB =====
+
+    // Drop zone setup - encrypt
+    setupDropZone(encryptDropZone, encryptFileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => {
+            if (validatePDF(files[0])) {
+                encryptFile = files[0];
+                encryptFileName.textContent = encryptFile.name + ' (' + formatSize(encryptFile.size) + ')';
+                encryptFileInfo.style.display = 'block';
+                updateEncryptBtn();
+                steps.setStep(1);
+                showInlinePreview(encryptFile, document.getElementById('encryptPreview'));
+            }
+        }
+    });
+
+    // Password strength indicator
+    encryptPassword.addEventListener('input', () => {
+        const val = encryptPassword.value;
+        if (val.length === 0) {
+            passwordStrength.className = 'password-strength';
+            strengthLabel.textContent = '';
+        } else {
+            const strength = checkPasswordStrength(val);
+            passwordStrength.className = 'password-strength ' + strength.level;
+            strengthLabel.textContent = strength.text;
+            strengthLabel.style.color = strength.color;
+        }
+        updateEncryptBtn();
+    });
+
+    // Password toggle - encrypt
+    encTogglePass.addEventListener('click', () => {
+        const type = encryptPassword.type === 'password' ? 'text' : 'password';
+        encryptPassword.type = type;
+    });
+
+    function updateEncryptBtn() {
+        encryptBtn.disabled = !(encryptFile && encryptPassword.value.trim());
+    }
+
+    // Permission checkboxes - toggle active class and update summary
+    function setupPermissionCheckbox(checkbox, checkboxItem, summaryEl) {
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                checkboxItem.classList.add('active');
+                summaryEl.className = 'perm-item allowed';
+                summaryEl.querySelector('.perm-icon').innerHTML = '&#10003;';
+            } else {
+                checkboxItem.classList.remove('active');
+                summaryEl.className = 'perm-item denied';
+                summaryEl.querySelector('.perm-icon').innerHTML = '&#10007;';
+            }
+        });
+    }
+
+    setupPermissionCheckbox(allowPrint, document.getElementById('permPrint'), document.getElementById('summaryPrint'));
+    setupPermissionCheckbox(allowCopy, document.getElementById('permCopy'), document.getElementById('summaryCopy'));
+    setupPermissionCheckbox(allowModify, document.getElementById('permModify'), document.getElementById('summaryModify'));
+
+    // Encrypt button handler
+    encryptBtn.addEventListener('click', async () => {
+        if (!encryptFile) {
+            showToast(__('encrypt_select_file_required'), 'error');
+            return;
+        }
+        if (!encryptPassword.value.trim()) {
+            showToast(__('encrypt_password_required'), 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pdf_file', encryptFile);
+        formData.append('password', encryptPassword.value);
+        formData.append('allow_print', allowPrint.checked);
+        formData.append('allow_copy', allowCopy.checked);
+        formData.append('allow_modify', allowModify.checked);
+
+        encryptBtn.disabled = true;
+        encryptBtn.textContent = __('encrypt_btn_loading');
+        uploadProgress.classList.add('show');
+        result.classList.remove('show');
+
+        try {
+            const data = await uploadWithProgress('/api/encrypt', formData, {
+                onProgress: (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                result.className = 'result show';
+                result.innerHTML = `
+                    <h3>${__('encrypt_complete')}</h3>
+                    <p>${__('encrypt_success_msg')}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showToast(__('encrypt_complete'), 'success');
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'encrypt');
+            } else {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <h3>${__('error')}</h3>
+                    <p>${data.error || __('error_generic')}</p>
+                `;
+                showToast(data.error || __('error_generic'), 'error');
+            }
+        } catch (err) {
+            uploadProgress.classList.remove('show');
+            result.className = 'result error show';
+            result.innerHTML = `
+                <h3>${__('error')}</h3>
+                <p>${err.message}</p>
+            `;
+            showToast(err.message, 'error');
+        } finally {
+            encryptBtn.disabled = false;
+            encryptBtn.textContent = __('encrypt_btn');
+            progressFill.style.width = '0%';
+        }
+    });
+
+    // ===== DECRYPT TAB =====
+
+    // Drop zone setup - decrypt
+    setupDropZone(decryptDropZone, decryptFileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => {
+            if (validatePDF(files[0])) {
+                decryptFile = files[0];
+                decryptFileName.textContent = decryptFile.name + ' (' + formatSize(decryptFile.size) + ')';
+                decryptFileInfo.style.display = 'block';
+                updateDecryptBtn();
+                steps.setStep(1);
+                showInlinePreview(decryptFile, document.getElementById('decryptPreview'));
+            }
+        }
+    });
+
+    // Password toggle - decrypt
+    decTogglePass.addEventListener('click', () => {
+        const type = decryptPassword.type === 'password' ? 'text' : 'password';
+        decryptPassword.type = type;
+    });
+
+    decryptPassword.addEventListener('input', updateDecryptBtn);
+
+    function updateDecryptBtn() {
+        decryptBtn.disabled = !(decryptFile && decryptPassword.value.trim());
+    }
+
+    // Decrypt button handler
+    decryptBtn.addEventListener('click', async () => {
+        if (!decryptFile) {
+            showToast(__('decrypt_select_file_required'), 'error');
+            return;
+        }
+        if (!decryptPassword.value.trim()) {
+            showToast(__('decrypt_password_required'), 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pdf_file', decryptFile);
+        formData.append('password', decryptPassword.value);
+
+        decryptBtn.disabled = true;
+        decryptBtn.textContent = __('decrypt_btn_loading');
+        uploadProgress.classList.add('show');
+        result.classList.remove('show');
+
+        try {
+            const data = await uploadWithProgress('/api/decrypt', formData, {
+                onProgress: (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                result.className = 'result show';
+                result.innerHTML = `
+                    <h3>${__('decrypt_complete')}</h3>
+                    <p>${__('decrypt_success_msg')}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showToast(__('decrypt_complete'), 'success');
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'encrypt');
+            } else {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <h3>${__('error')}</h3>
+                    <p>${data.error || __('error_generic')}</p>
+                `;
+                showToast(data.error || __('error_generic'), 'error');
+            }
+        } catch (err) {
+            uploadProgress.classList.remove('show');
+            result.className = 'result error show';
+            result.innerHTML = `
+                <h3>${__('error')}</h3>
+                <p>${err.message}</p>
+            `;
+            showToast(err.message, 'error');
+        } finally {
+            decryptBtn.disabled = false;
+            decryptBtn.textContent = __('decrypt_btn');
+            progressFill.style.width = '0%';
+        }
+    });
+})();
+</script>
+{% endblock %}

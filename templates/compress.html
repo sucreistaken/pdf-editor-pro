@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('compress_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📦{% endblock %}
+{% block header_title %}{{ _('compress_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('compress_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #0c4a6e 0%, #1d4ed8 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-box {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px; display: none; color: white;
+    }
+    .file-info-box .file-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .file-info-box .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+    .quality-section { margin-top: 24px; }
+    .quality-section > label { display: block; color: white; font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; }
+
+    .quality-options { display: flex; flex-direction: column; gap: 10px; }
+
+    .quality-option {
+        display: flex; align-items: center; gap: 14px;
+        padding: 16px 20px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 14px;
+        cursor: pointer; transition: all 0.3s;
+    }
+    .quality-option:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+    .quality-option.selected { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.5); }
+    .quality-option input[type="radio"] { display: none; }
+
+    .quality-radio {
+        width: 22px; height: 22px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.4);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: all 0.3s;
+    }
+    .quality-option.selected .quality-radio { border-color: white; }
+    .quality-option.selected .quality-radio::after {
+        content: ''; width: 12px; height: 12px; border-radius: 50%; background: white;
+    }
+
+    .quality-text { flex: 1; }
+    .quality-text .quality-title { font-weight: 700; font-size: 1rem; color: white; margin-bottom: 2px; }
+    .quality-text .quality-desc { font-size: 0.8rem; color: rgba(255,255,255,0.55); }
+
+    .warning-box {
+        margin-top: 12px; padding: 14px 18px;
+        background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4);
+        border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 0.9rem; display: none;
+    }
+
+    /* Animated counter */
+    @keyframes countUp {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .size-animate {
+        animation: countUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_compress') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="70" height="70">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 18V12M9 15l3-3 3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('compress_subtitle') }}</p>
+        <span class="file-limit">Maks: 100 MB</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-info-box" id="fileInfoBox">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+    </div>
+    <div class="inline-preview" id="inlinePreview"></div>
+
+    <div class="quality-section">
+        <label>{{ _('compress_quality') }}</label>
+        <div class="quality-options" id="qualityOptions">
+            <label class="quality-option" data-quality="high" onclick="selectQuality('high')">
+                <input type="radio" name="quality" value="high">
+                <div class="quality-radio"></div>
+                <div class="quality-text">
+                    <div class="quality-title">{{ _('compress_high') }}</div>
+                    <div class="quality-desc">{{ _('compress_high_desc') }}</div>
+                </div>
+            </label>
+            <label class="quality-option selected" data-quality="medium" onclick="selectQuality('medium')">
+                <input type="radio" name="quality" value="medium" checked>
+                <div class="quality-radio"></div>
+                <div class="quality-text">
+                    <div class="quality-title">{{ _('compress_medium') }}</div>
+                    <div class="quality-desc">{{ _('compress_medium_desc') }}</div>
+                </div>
+            </label>
+            <label class="quality-option" data-quality="low" onclick="selectQuality('low')">
+                <input type="radio" name="quality" value="low">
+                <div class="quality-radio"></div>
+                <div class="quality-text">
+                    <div class="quality-title">{{ _('compress_low') }}</div>
+                    <div class="quality-desc">{{ _('compress_low_desc') }}</div>
+                </div>
+            </label>
+        </div>
+        <div class="compress-estimate" id="compressEstimate">
+            {{ _('compress_medium') }}: <span class="estimate-value">~%30-50</span> {{ _('compress_estimate_reduction') or 'küçülme beklenir' }}
+        </div>
+    </div>
+
+    <button class="btn-primary" id="compressBtn" disabled>{{ _('compress_btn') }}</button>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="warning-box" id="warningBox"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    let quality = 'medium';
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const compressBtn = document.getElementById('compressBtn');
+    const resultDiv = document.getElementById('result');
+    const warningBox = document.getElementById('warningBox');
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBox').style.display = 'block';
+        compressBtn.disabled = false;
+        steps.setStep(1);
+        showInlinePreview(file, document.getElementById('inlinePreview'));
+    }
+
+    const estimateMap = {
+        high:   { label: __('compress_high'),   range: '~%10-20' },
+        medium: { label: __('compress_medium'), range: '~%30-50' },
+        low:    { label: __('compress_low'),    range: '~%50-70' }
+    };
+
+    function selectQuality(q) {
+        quality = q;
+        document.querySelectorAll('.quality-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.querySelector('input[type="radio"]').checked = false;
+        });
+        const selected = document.querySelector(`.quality-option[data-quality="${q}"]`);
+        selected.classList.add('selected');
+        selected.querySelector('input[type="radio"]').checked = true;
+
+        // Update estimate
+        const est = estimateMap[q];
+        if (est) {
+            document.getElementById('compressEstimate').innerHTML =
+                est.label + ': <span class="estimate-value">' + est.range + '</span> ' + (__('compress_estimate_reduction') || 'küçülme beklenir');
+        }
+    }
+
+    compressBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        compressBtn.disabled = true;
+        compressBtn.classList.add('loading');
+        resultDiv.className = 'result';
+        warningBox.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('quality', quality);
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/compress', formData, {
+                onProgress: (percent, loaded, total) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent =
+                        __('uploading') + ' ' + percent + '% (' + formatSize(loaded) + ' / ' + formatSize(total) + ')';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                const reduction = parseFloat(data.reduction) || 0;
+
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = `
+                    <h3>${__('compress_complete')}</h3>
+                    <div class="compress-comparison">
+                        <div class="compress-side before">
+                            <span class="size-value size-animate">${data.original_size}</span>
+                            <span class="size-label">${__('compress_original')}</span>
+                        </div>
+                        <div class="compress-arrow">
+                            <span class="arrow-icon">→</span>
+                            <span class="reduction-badge">-${data.reduction}%</span>
+                        </div>
+                        <div class="compress-side after">
+                            <span class="size-value size-animate" style="animation-delay: 0.2s">${data.compressed_size}</span>
+                            <span class="size-label">${__('compress_new')}</span>
+                        </div>
+                    </div>
+                    <div class="stats-grid" style="max-width: 200px; margin: 10px auto;">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.images_compressed || 0}</div>
+                            <div class="stat-label">${__('compress_images')}</div>
+                        </div>
+                    </div>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'compress');
+
+                // Warning if reduction is minimal
+                if (reduction < 5) {
+                    warningBox.textContent = __('compress_already_optimized');
+                    warningBox.style.display = 'block';
+                }
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = '<h3>' + __('error') + '</h3><p>' + error.message + '</p>';
+        } finally {
+            compressBtn.disabled = false;
+            compressBtn.classList.remove('loading');
+            compressBtn.textContent = __('compress_btn');
+        }
+    });
+</script>
+{% endblock %}

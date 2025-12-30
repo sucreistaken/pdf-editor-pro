@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('merge_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}📎{% endblock %}
+{% block header_title %}{{ _('merge_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('merge_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #4338ca 0%, #5b21b6 50%, #7e22ce 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-counter {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .file-counter .count {
+        font-weight: 700;
+        color: white;
+        font-size: 1.1rem;
+    }
+
+    .file-item .file-order {
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .reorder-hint {
+        text-align: center;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 10px;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_sort') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M7 18V11H3L12 2L21 11H17V18H7Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>{{ _('merge_drag_files') }}</h3>
+        <p>{{ _('upload_drag') }}</p>
+        <span class="file-limit">{{ _('upload_limit_multi') }}</span>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf" multiple>
+
+    <!-- File List -->
+    <div class="file-list" id="fileList"></div>
+
+    <!-- File Counter -->
+    <div class="file-counter" id="fileCounter" style="display: none;">
+        <span>{{ _('total') }}:</span>
+        <span class="count" id="fileCount">0</span>
+        <span>{{ _('merge_files_selected') }}</span>
+    </div>
+
+    <p class="reorder-hint" id="reorderHint" style="display: none;">
+        {{ _('merge_reorder_hint') }}
+    </p>
+
+    <!-- Custom Filename -->
+    <div class="form-group" id="optionsSection" style="display: none; margin-top: 25px;">
+        <label for="customName">{{ _('merge_output_name') }}</label>
+        <input type="text" id="customName" placeholder="birlestirilmis.pdf">
+    </div>
+
+    <!-- Merge Button -->
+    <button class="btn-primary" id="mergeBtn" disabled>
+        {{ _('merge_btn') }}
+    </button>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const fileCounter = document.getElementById('fileCounter');
+    const fileCount = document.getElementById('fileCount');
+    const reorderHint = document.getElementById('reorderHint');
+    const optionsSection = document.getElementById('optionsSection');
+    const customName = document.getElementById('customName');
+    const mergeBtn = document.getElementById('mergeBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const result = document.getElementById('result');
+
+    let selectedFiles = [];
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: true,
+        onFiles: addFiles
+    });
+
+    function addFiles(files) {
+        for (const file of files) {
+            selectedFiles.push(file);
+        }
+        renderFileList();
+    }
+
+    function renderFileList() {
+        fileList.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.draggable = true;
+            item.dataset.index = index;
+            item.innerHTML = `
+                <div class="file-info">
+                    <span class="drag-handle">&#x2807;</span>
+                    <span class="file-order">${index + 1}</span>
+                    <div class="merge-thumb-placeholder" data-thumb-index="${index}">PDF</div>
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatSize(file.size)}</span>
+                    <span class="merge-page-count" data-pages-index="${index}"></span>
+                </div>
+                <button class="remove-btn" data-index="${index}">${__('remove')}</button>
+            `;
+            fileList.appendChild(item);
+
+            // Load thumbnail for this file
+            loadMergeThumbnail(file, index);
+        });
+
+        // Update UI state
+        const hasFiles = selectedFiles.length > 0;
+        fileCounter.style.display = hasFiles ? 'flex' : 'none';
+        fileCount.textContent = selectedFiles.length;
+        reorderHint.style.display = selectedFiles.length > 1 ? 'block' : 'none';
+        optionsSection.style.display = hasFiles ? 'block' : 'none';
+        mergeBtn.disabled = selectedFiles.length < 2;
+
+        if (selectedFiles.length >= 2) steps.setStep(1);
+        else if (selectedFiles.length > 0) steps.setStep(0);
+
+        // Enable drag sort for reordering
+        if (selectedFiles.length > 1) {
+            enableDragSort(fileList, '.file-item', () => {
+                const items = fileList.querySelectorAll('.file-item');
+                const newOrder = [];
+                items.forEach(item => {
+                    const idx = parseInt(item.dataset.index);
+                    newOrder.push(selectedFiles[idx]);
+                });
+                selectedFiles = newOrder;
+                renderFileList();
+            });
+        }
+    }
+
+    // Load thumbnail for merge file list
+    async function loadMergeThumbnail(file, index) {
+        const formData = new FormData();
+        formData.append('pdf_file', file);
+        formData.append('page', 0);
+        formData.append('width', 100);
+
+        try {
+            const resp = await fetch('/api/preview', { method: 'POST', body: formData, headers: { 'X-CSRFToken': getCSRFToken() } });
+            const data = await resp.json();
+            if (data.success) {
+                const placeholder = fileList.querySelector(`[data-thumb-index="${index}"]`);
+                if (placeholder) {
+                    const img = document.createElement('img');
+                    img.className = 'merge-thumb';
+                    img.src = data.image;
+                    img.alt = file.name;
+                    placeholder.replaceWith(img);
+                }
+                // Show page count
+                if (data.total_pages) {
+                    const pageEl = fileList.querySelector(`[data-pages-index="${index}"]`);
+                    if (pageEl) {
+                        pageEl.textContent = data.total_pages + ' ' + (__('pages') || 'sayfa');
+                    }
+                }
+            }
+        } catch (e) {
+            // Thumbnail load failed silently - placeholder stays
+        }
+    }
+
+    // Remove file handler
+    fileList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-btn')) {
+            const index = parseInt(e.target.dataset.index);
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+    });
+
+    // Merge button handler
+    mergeBtn.addEventListener('click', async () => {
+        if (selectedFiles.length < 2) {
+            showToast(__('merge_min_files'), 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('pdf_files', file);
+        });
+
+        // File order as comma-separated indices
+        const order = selectedFiles.map((_, i) => i).join(',');
+        formData.append('file_order', order);
+
+        const name = customName.value.trim();
+        if (name) {
+            formData.append('custom_name', name);
+        }
+
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = __('merge_btn_loading');
+        uploadProgress.classList.add('show');
+        result.classList.remove('show');
+
+        try {
+            const data = await uploadWithProgress('/api/merge', formData, {
+                onProgress: (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                result.className = 'result show';
+                result.innerHTML = `
+                    <h3>${__('merge_complete')}</h3>
+                    <p>${__('merge_success_msg', {count: selectedFiles.length})}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showToast(__('merge_complete'), 'success');
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'merge');
+            } else {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <h3>${__('error')}</h3>
+                    <p>${data.error || __('error_generic')}</p>
+                `;
+                showToast(data.error || __('error_generic'), 'error');
+            }
+        } catch (err) {
+            uploadProgress.classList.remove('show');
+            result.className = 'result error show';
+            result.innerHTML = `
+                <h3>${__('error')}</h3>
+                <p>${err.message}</p>
+            `;
+            showToast(err.message, 'error');
+        } finally {
+            mergeBtn.disabled = false;
+            mergeBtn.textContent = __('merge_btn');
+            progressFill.style.width = '0%';
+        }
+    });
+})();
+</script>
+{% endblock %}

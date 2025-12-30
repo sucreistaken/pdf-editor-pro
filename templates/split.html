@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('split_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}&#9986;{% endblock %}
+{% block header_title %}{{ _('split_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('split_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #7e22ce 0%, #be123c 50%, #1d4ed8 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-bar {
+        margin-top: 20px;
+        padding: 18px 22px;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        display: none;
+        color: white;
+    }
+
+    .file-info-bar .file-details {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .file-info-bar .file-name-display {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .file-info-bar .page-badge {
+        padding: 6px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .split-options {
+        margin-top: 25px;
+        display: none;
+    }
+
+    .range-input-section {
+        margin-top: 15px;
+        display: none;
+    }
+
+    .range-hint {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 6px;
+    }
+
+    .split-files-list {
+        margin-top: 15px;
+    }
+
+    .split-file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+
+    .split-file-item .sf-name {
+        font-size: 0.9rem;
+        color: white;
+        font-weight: 500;
+    }
+
+    .split-file-item .sf-download {
+        padding: 6px 14px;
+        background: rgba(16, 185, 129, 0.8);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .split-file-item .sf-download:hover {
+        background: rgba(16, 185, 129, 1);
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_split') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="9" y1="15" x2="15" y2="15" stroke-linecap="round"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('upload_drag') }}</p>
+        <span class="file-limit">{{ _('upload_limit') }}</span>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf">
+
+    <!-- File Info Bar -->
+    <div class="file-info-bar" id="fileInfoBar">
+        <div class="file-details">
+            <span class="file-name-display" id="fileNameDisplay"></span>
+            <span class="page-badge" id="pageBadge"></span>
+        </div>
+    </div>
+    <div class="inline-preview" id="inlinePreview"></div>
+
+    <!-- Split Options -->
+    <div class="split-options" id="splitOptions">
+        <div class="form-group">
+            <label>{{ _('split_mode') }}</label>
+            <div class="radio-group">
+                <label class="radio-item active" id="modeAll">
+                    <input type="radio" name="splitMode" value="all" checked>
+                    <span>{{ _('split_all') }}</span>
+                </label>
+                <label class="radio-item" id="modeRange">
+                    <input type="radio" name="splitMode" value="range">
+                    <span>{{ _('split_range') }}</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Range Input -->
+        <div class="range-input-section" id="rangeSection">
+            <div class="form-group">
+                <label for="pageRanges">{{ _('split_range') }}</label>
+                <input type="text" id="pageRanges" placeholder="1-5, 8-10">
+                <p class="range-hint">{{ _('split_range_hint') }}</p>
+            </div>
+        </div>
+
+        <!-- Custom Prefix -->
+        <div class="form-group">
+            <label for="filePrefix">{{ _('split_prefix') }}</label>
+            <input type="text" id="filePrefix" placeholder="sayfa">
+        </div>
+    </div>
+
+    <!-- Split Button -->
+    <button class="btn-primary" id="splitBtn" disabled>
+        {{ _('split_btn') }}
+    </button>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfoBar = document.getElementById('fileInfoBar');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const pageBadge = document.getElementById('pageBadge');
+    const splitOptions = document.getElementById('splitOptions');
+    const modeAll = document.getElementById('modeAll');
+    const modeRange = document.getElementById('modeRange');
+    const rangeSection = document.getElementById('rangeSection');
+    const pageRanges = document.getElementById('pageRanges');
+    const filePrefix = document.getElementById('filePrefix');
+    const splitBtn = document.getElementById('splitBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const result = document.getElementById('result');
+
+    let selectedFile = null;
+    let splitMode = 'all';
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+
+        selectedFile = file;
+        fileNameDisplay.textContent = file.name + ' (' + formatSize(file.size) + ')';
+        pageBadge.textContent = __('split_uploaded');
+        fileInfoBar.style.display = 'block';
+        splitOptions.style.display = 'block';
+        splitBtn.disabled = false;
+        steps.setStep(1);
+        showInlinePreview(file, document.getElementById('inlinePreview'), {
+            onPageChange: updateRangeHighlight
+        });
+
+        // Try to get page count by quick upload
+        getPageCount(file);
+
+    }
+
+    function getPageCount(file) {
+        // We will get the page count from the split API response
+        // For now, show the file as ready
+        pageBadge.textContent = __('split_ready');
+    }
+
+    // Parse range string like "1-5, 8-10" into a Set of page numbers (0-indexed)
+    function parseRanges(rangeStr) {
+        const pages = new Set();
+        if (!rangeStr) return pages;
+        rangeStr.split(',').forEach(part => {
+            part = part.trim();
+            const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+            if (m) {
+                const start = parseInt(m[1]), end = parseInt(m[2]);
+                for (let i = start; i <= end; i++) pages.add(i - 1); // 0-indexed
+            } else {
+                const n = parseInt(part);
+                if (!isNaN(n)) pages.add(n - 1);
+            }
+        });
+        return pages;
+    }
+
+    function updateRangeHighlight(page, total) {
+        const container = document.getElementById('inlinePreview');
+        const nav = container.querySelector('.inline-preview-nav');
+        if (!nav) return;
+        const info = nav.querySelector('.ip-nav-info');
+        if (!info) return;
+
+        // Remove existing badge
+        const oldBadge = info.querySelector('.range-badge');
+        if (oldBadge) oldBadge.remove();
+
+        if (splitMode === 'range' && pageRanges.value.trim()) {
+            const selectedPages = parseRanges(pageRanges.value);
+            if (selectedPages.has(page)) {
+                const badge = document.createElement('span');
+                badge.className = 'range-badge';
+                badge.textContent = __('split_range') || 'Aralik';
+                info.appendChild(badge);
+            }
+        }
+    }
+
+    // Mode selection
+    modeAll.addEventListener('click', () => {
+        splitMode = 'all';
+        modeAll.classList.add('active');
+        modeRange.classList.remove('active');
+        rangeSection.style.display = 'none';
+        // Refresh badge
+        const container = document.getElementById('inlinePreview');
+        if (container._previewPage !== undefined) {
+            updateRangeHighlight(container._previewPage, container._previewTotalPages);
+        }
+    });
+
+    modeRange.addEventListener('click', () => {
+        splitMode = 'range';
+        modeRange.classList.add('active');
+        modeAll.classList.remove('active');
+        rangeSection.style.display = 'block';
+        // Refresh badge
+        const container = document.getElementById('inlinePreview');
+        if (container._previewPage !== undefined) {
+            updateRangeHighlight(container._previewPage, container._previewTotalPages);
+        }
+    });
+
+    // Update range badge when user types ranges
+    pageRanges.addEventListener('input', () => {
+        const container = document.getElementById('inlinePreview');
+        if (container._previewPage !== undefined) {
+            updateRangeHighlight(container._previewPage, container._previewTotalPages);
+        }
+    });
+
+    // Split button handler
+    splitBtn.addEventListener('click', async () => {
+        if (!selectedFile) {
+            showToast(__('split_select_file'), 'error');
+            return;
+        }
+
+        if (splitMode === 'range' && !pageRanges.value.trim()) {
+            showToast(__('split_enter_range'), 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('mode', splitMode);
+
+        if (splitMode === 'range') {
+            formData.append('ranges', pageRanges.value.trim());
+        }
+
+        const prefix = filePrefix.value.trim();
+        if (prefix) {
+            formData.append('prefix', prefix);
+        }
+
+        splitBtn.disabled = true;
+        splitBtn.textContent = __('split_btn_loading');
+        uploadProgress.classList.add('show');
+        result.classList.remove('show');
+
+        try {
+            const data = await uploadWithProgress('/api/split', formData, {
+                onProgress: (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                // Update page count badge
+                if (data.total_pages) {
+                    pageBadge.textContent = __('split_total_pages', {count: data.total_pages});
+                }
+
+                // Build file list HTML
+                let filesHtml = '<div class="split-files-list">';
+                data.files.forEach(f => {
+                    filesHtml += `
+                        <div class="split-file-item">
+                            <span class="sf-name">${f.name}</span>
+                            <a href="${f.url}" class="sf-download">${__('download')}</a>
+                        </div>
+                    `;
+                });
+                filesHtml += '</div>';
+
+                // ZIP download if available
+                let zipHtml = '';
+                if (data.zip_url) {
+                    zipHtml = `<a href="${data.zip_url}" class="download-btn" style="margin-top: 15px;">${__('split_download_zip')}</a>`;
+                }
+
+                steps.setStep(2);
+                result.className = 'result show';
+                result.innerHTML = `
+                    <h3>${__('split_complete')}</h3>
+                    <p>${__('split_files_created', {count: data.files.length})}</p>
+                    ${filesHtml}
+                    ${zipHtml}
+                `;
+                showToast(__('split_success'), 'success');
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'split');
+            } else {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <h3>${__('error')}</h3>
+                    <p>${data.error || __('error_generic')}</p>
+                `;
+                showToast(data.error || __('error_generic'), 'error');
+            }
+        } catch (err) {
+            uploadProgress.classList.remove('show');
+            result.className = 'result error show';
+            result.innerHTML = `
+                <h3>${__('error')}</h3>
+                <p>${err.message}</p>
+            `;
+            showToast(err.message, 'error');
+        } finally {
+            splitBtn.disabled = false;
+            splitBtn.textContent = __('split_btn');
+            progressFill.style.width = '0%';
+        }
+    });
+})();
+</script>
+{% endblock %}
