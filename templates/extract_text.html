@@ -1,0 +1,634 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('extract_text_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📝{% endblock %}
+{% block header_title %}{{ _('extract_text_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('extract_text_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    /* File info bar */
+    .file-info-bar {
+        margin-top: 20px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .file-info-bar.show {
+        display: flex;
+    }
+
+    .file-info-bar .file-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .file-info-bar .file-size {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .file-info-bar .change-btn {
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .file-info-bar .change-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Stats grid */
+    .text-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .text-stat-item {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 14px;
+        padding: 18px 12px;
+        text-align: center;
+    }
+
+    .text-stat-item .stat-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: white;
+        line-height: 1.2;
+    }
+
+    .text-stat-item .stat-label {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 6px;
+        font-weight: 500;
+    }
+
+    /* Result section */
+    .text-result {
+        display: none;
+        margin-top: 25px;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .text-result.show {
+        display: block;
+    }
+
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .result-header h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #10b981;
+    }
+
+    /* Page tabs / accordion */
+    .page-tabs-container {
+        margin-bottom: 20px;
+    }
+
+    .page-tab-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .page-tab-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .page-tab-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+    }
+
+    .page-tab-btn.active {
+        background: rgba(102, 126, 234, 0.3);
+        border-color: rgba(102, 126, 234, 0.6);
+        color: white;
+    }
+
+    .page-tab-btn.all-tab {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+
+    .page-tab-btn.all-tab.active {
+        background: rgba(102, 126, 234, 0.3);
+        border-color: rgba(102, 126, 234, 0.6);
+    }
+
+    /* Text output area */
+    .text-output {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 22px;
+        max-height: 450px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .text-output::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .text-output::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+    }
+
+    .text-output::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    .text-output::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .page-separator {
+        text-align: center;
+        padding: 12px 0;
+        color: rgba(102, 126, 234, 0.8);
+        font-weight: 700;
+        font-size: 0.9rem;
+        border-bottom: 1px dashed rgba(102, 126, 234, 0.3);
+        margin-bottom: 12px;
+    }
+
+    /* Action buttons */
+    .action-btns {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .action-btn {
+        flex: 1;
+        padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .action-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn.copy-btn {
+        border-color: rgba(102, 126, 234, 0.4);
+    }
+
+    .action-btn.download-txt-btn {
+        border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .action-btn.copied {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    /* No text message */
+    .no-text-msg {
+        text-align: center;
+        padding: 40px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.05rem;
+    }
+
+    /* Loading */
+    .extracting-indicator {
+        display: none;
+        text-align: center;
+        padding: 30px;
+        margin-top: 20px;
+    }
+
+    .extracting-indicator.show {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .extracting-indicator .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 14px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .text-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .action-btns {
+            flex-direction: column;
+        }
+
+        .page-tab-nav {
+            gap: 4px;
+        }
+
+        .page-tab-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .text-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .result-header {
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div id="uploadSection">
+        <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="14 2 14 8 20 8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="16" y1="13" x2="8" y2="13" stroke-width="2" stroke-linecap="round"/>
+                <line x1="16" y1="17" x2="8" y2="17" stroke-width="2" stroke-linecap="round"/>
+                <polyline points="10 9 9 9 8 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('upload_file') }}</h3>
+            <p>{{ _('extract_text_subtitle') }}</p>
+            <span class="file-limit">{{ _('max_file_size') }}</span>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+
+        <div class="file-info-bar" id="fileInfoBar">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <button class="change-btn" onclick="resetUpload()">{{ _('change') }}</button>
+        </div>
+    </div>
+
+    <!-- Extract Button -->
+    <button class="btn-primary" id="extractBtn" disabled>{{ _('extract_text_btn') }}</button>
+
+    <!-- Loading Indicator -->
+    <div class="extracting-indicator" id="extractingIndicator">
+        <div class="spinner"></div>
+        <span>{{ _('extract_text_btn_loading') }}</span>
+    </div>
+
+    <!-- Result Section -->
+    <div class="text-result" id="textResult">
+        <!-- Stats -->
+        <div class="text-stats" id="textStats"></div>
+
+        <!-- Result Header -->
+        <div class="result-header">
+            <h3>{{ _('extract_text_complete') }}</h3>
+        </div>
+
+        <!-- Page Tabs -->
+        <div class="page-tabs-container">
+            <div class="page-tab-nav" id="pageTabNav"></div>
+        </div>
+
+        <!-- Text Output -->
+        <div class="text-output" id="textOutput"></div>
+
+        <!-- Action Buttons -->
+        <div class="action-btns">
+            <button class="action-btn copy-btn" id="copyBtn" onclick="copyText()">{{ _('extract_text_copy') }}</button>
+            <button class="action-btn download-txt-btn" id="downloadTxtBtn" onclick="downloadText()">{{ _('extract_text_download') }}</button>
+        </div>
+    </div>
+
+    <!-- Error Result -->
+    <div class="result" id="errorResult"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    let selectedFile = null;
+    let extractedText = '';
+    let pageTexts = [];
+    let currentPage = 'all';
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const extractBtn = document.getElementById('extractBtn');
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBar').classList.add('show');
+        dropZone.style.display = 'none';
+        extractBtn.disabled = false;
+        steps.setStep(1);
+
+        // Reset previous results
+        document.getElementById('textResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('errorResult').classList.remove('show');
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        extractedText = '';
+        pageTexts = [];
+        currentPage = 'all';
+        document.getElementById('fileInfoBar').classList.remove('show');
+        dropZone.style.display = '';
+        extractBtn.disabled = true;
+        document.getElementById('textResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('errorResult').classList.remove('show');
+        document.getElementById('extractingIndicator').classList.remove('show');
+        fileInput.value = '';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function parsePageTexts(fullText, pageCount) {
+        // Try splitting by page markers: --- Sayfa X ---
+        const pages = [];
+        const regex = /---\s*Sayfa\s+(\d+)\s*---/gi;
+        const parts = fullText.split(regex);
+
+        if (parts.length > 1) {
+            // First element might be text before first marker (usually empty)
+            for (let i = 1; i < parts.length; i += 2) {
+                const pageNum = parseInt(parts[i]);
+                const pageContent = (parts[i + 1] || '').trim();
+                pages.push({ page: pageNum, text: pageContent });
+            }
+        } else {
+            // No page markers found, treat as single page
+            pages.push({ page: 1, text: fullText.trim() });
+        }
+
+        return pages;
+    }
+
+    function countWords(text) {
+        if (!text || text.trim().length === 0) return 0;
+        return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    }
+
+    function countParagraphs(text) {
+        if (!text || text.trim().length === 0) return 0;
+        return text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
+    }
+
+    function showPageText(page) {
+        currentPage = page;
+        const output = document.getElementById('textOutput');
+        const navBtns = document.querySelectorAll('.page-tab-btn');
+
+        navBtns.forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+        if (page === 'all') {
+            // Show all pages with separators
+            let html = '';
+            pageTexts.forEach(pt => {
+                html += `<div class="page-separator">--- ${__('page')} ${pt.page} ---</div>`;
+                html += escapeHtml(pt.text) + '\n\n';
+            });
+            output.innerHTML = html;
+        } else {
+            const pt = pageTexts.find(p => p.page === parseInt(page));
+            if (pt) {
+                output.innerHTML = `<div class="page-separator">--- ${__('page')} ${pt.page} ---</div>` + escapeHtml(pt.text);
+            }
+        }
+    }
+
+    function copyText() {
+        let textToCopy = '';
+        if (currentPage === 'all') {
+            textToCopy = extractedText;
+        } else {
+            const pt = pageTexts.find(p => p.page === parseInt(currentPage));
+            textToCopy = pt ? pt.text : extractedText;
+        }
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.getElementById('copyBtn');
+            btn.classList.add('copied');
+            btn.textContent = __('extract_text_copied');
+            showToast(__('extract_text_copied'), 'success');
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.textContent = __('extract_text_copy');
+            }, 2000);
+        }).catch(() => {
+            showToast(__('extract_text_copy_failed'), 'error');
+        });
+    }
+
+    function downloadText() {
+        const blob = new Blob([extractedText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const baseName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'metin';
+        a.href = url;
+        a.download = baseName + '_metin.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(__('extract_text_download_complete'), 'success');
+    }
+
+    // Extract
+    extractBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        extractBtn.disabled = true;
+        extractBtn.textContent = __('extract_text_btn_loading');
+        document.getElementById('textResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('extractingIndicator').classList.add('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        try {
+            const data = await uploadWithProgress('/api/extract-text', formData);
+
+            document.getElementById('extractingIndicator').classList.remove('show');
+
+            if (data.success) {
+                extractedText = data.text || '';
+
+                if (extractedText.trim().length === 0) {
+                    document.getElementById('textResult').classList.add('show');
+                    document.getElementById('textStats').innerHTML = '';
+                    document.getElementById('pageTabNav').innerHTML = '';
+                    document.getElementById('textOutput').innerHTML = '<div class="no-text-msg">' + __('extract_text_no_text') + '</div>';
+                    return;
+                }
+
+                const pageCount = data.page_count || 1;
+                const charCount = data.char_count || extractedText.length;
+                const wordCount = countWords(extractedText);
+                const paragraphCount = countParagraphs(extractedText);
+
+                // Parse pages
+                pageTexts = parsePageTexts(extractedText, pageCount);
+
+                // Render stats
+                document.getElementById('textStats').innerHTML = `
+                    <div class="text-stat-item">
+                        <div class="stat-value">${pageCount}</div>
+                        <div class="stat-label">${__('page_count')}</div>
+                    </div>
+                    <div class="text-stat-item">
+                        <div class="stat-value">${charCount.toLocaleString('tr-TR')}</div>
+                        <div class="stat-label">${__('extract_text_chars')}</div>
+                    </div>
+                    <div class="text-stat-item">
+                        <div class="stat-value">${wordCount.toLocaleString('tr-TR')}</div>
+                        <div class="stat-label">${__('extract_text_words')}</div>
+                    </div>
+                    <div class="text-stat-item">
+                        <div class="stat-value">${paragraphCount}</div>
+                        <div class="stat-label">${__('extract_text_paragraphs')}</div>
+                    </div>
+                `;
+
+                // Render page tabs
+                let tabsHtml = `<button class="page-tab-btn all-tab active" data-page="all" onclick="showPageText('all')">${__('extract_text_all_pages')}</button>`;
+                pageTexts.forEach(pt => {
+                    tabsHtml += `<button class="page-tab-btn" data-page="${pt.page}" onclick="showPageText(${pt.page})">${__('page')} ${pt.page}</button>`;
+                });
+                document.getElementById('pageTabNav').innerHTML = tabsHtml;
+
+                // Show full text
+                showPageText('all');
+
+                document.getElementById('textResult').classList.add('show');
+                showToast(__('extract_text_complete'), 'success');
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'extract-text');
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            document.getElementById('extractingIndicator').classList.remove('show');
+            const errResult = document.getElementById('errorResult');
+            errResult.className = 'result error show';
+            errResult.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+            errResult.style.display = 'block';
+            showToast(error.message, 'error');
+        } finally {
+            extractBtn.disabled = false;
+            extractBtn.textContent = __('extract_text_btn');
+        }
+    });
+</script>
+{% endblock %}

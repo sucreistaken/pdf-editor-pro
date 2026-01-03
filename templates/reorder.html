@@ -1,0 +1,812 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('reorder_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}📑{% endblock %}
+{% block header_title %}{{ _('reorder_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('reorder_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #78350f 0%, #c2410c 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .header h1, .header p {
+        color: white;
+    }
+
+    .back-link {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .back-link:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Upload Section */
+    .upload-section {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 3px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 50px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .upload-section:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.01);
+    }
+
+    .upload-section.hidden { display: none; }
+
+    .upload-icon { font-size: 3.5rem; margin-bottom: 16px; }
+
+    .upload-section h3 {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+        color: white;
+        font-weight: 700;
+    }
+
+    .upload-section p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1rem;
+    }
+
+    /* Editor Section */
+    .editor-section { display: none; animation: fadeInUp 0.6s ease-out; }
+    .editor-section.active { display: block; }
+
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        margin-bottom: 20px;
+    }
+
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .toolbar-left .file-name-display {
+        font-weight: 700;
+        color: white;
+        font-size: 0.95rem;
+    }
+
+    .toolbar-left .page-count {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+    }
+
+    .toolbar-right {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+        font-family: inherit;
+    }
+
+    .btn-tool {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: white;
+    }
+
+    .btn-tool:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .btn-accent {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        color: white;
+        border: none;
+    }
+
+    .btn-accent:hover:not(:disabled) {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    }
+
+    .btn-accent:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        border: none;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+    }
+
+    .btn-save:hover:not(:disabled) {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-save:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Page Grid */
+    .pages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 20px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        min-height: 300px;
+    }
+
+    .page-item {
+        position: relative;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        overflow: hidden;
+        cursor: grab;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .page-item:hover {
+        border-color: rgba(249, 115, 22, 0.5);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .page-item.dragging {
+        opacity: 0.4;
+        cursor: grabbing;
+        transform: scale(0.95);
+        border-color: #f97316;
+    }
+
+    .page-item.drag-over {
+        border-color: #10b981;
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.15);
+    }
+
+    .page-item.selected {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .page-thumbnail {
+        width: 100%;
+        aspect-ratio: 0.707;
+        object-fit: cover;
+        display: block;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .page-number {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        backdrop-filter: blur(4px);
+    }
+
+    .page-checkbox {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 26px;
+        height: 26px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-radius: 7px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+        transition: all 0.2s;
+        backdrop-filter: blur(4px);
+    }
+
+    .page-checkbox:hover {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.3);
+    }
+
+    .page-checkbox.checked {
+        background: rgba(239, 68, 68, 0.9);
+        border-color: #ef4444;
+    }
+
+    .page-actions {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .page-item:hover .page-actions {
+        opacity: 1;
+    }
+
+    .page-action-btn {
+        width: 26px;
+        height: 26px;
+        background: rgba(0, 0, 0, 0.6);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        backdrop-filter: blur(4px);
+    }
+
+    .page-action-btn:hover {
+        background: rgba(249, 115, 22, 0.8);
+        transform: scale(1.1);
+    }
+
+    /* Instructions */
+    .instructions {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+    .instruction-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+    }
+
+    .instruction-icon {
+        width: 30px;
+        height: 30px;
+        background: rgba(249, 115, 22, 0.15);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    /* Loading */
+    .loading {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #f97316;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 40px;
+        text-align: center;
+        max-width: 420px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .modal-content h3 {
+        color: #10b981;
+        margin-bottom: 12px;
+        font-size: 1.3rem;
+    }
+
+    .modal-content p {
+        color: rgba(45, 31, 14, 0.7);
+        margin-bottom: 24px;
+    }
+
+    .download-link {
+        display: inline-block;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 700;
+        transition: all 0.3s;
+        font-size: 1rem;
+    }
+
+    .download-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .toolbar-right {
+            justify-content: center;
+        }
+        .pages-grid {
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+            padding: 16px;
+        }
+        .instructions {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Upload Section -->
+<div class="upload-section" id="uploadSection" onclick="document.getElementById('pdfInput').click()">
+    <input type="file" id="pdfInput" accept=".pdf" hidden>
+    <div class="upload-icon">📄</div>
+    <h3>{{ _('upload_file') }}</h3>
+    <p>{{ _('upload_file_desc') }}</p>
+</div>
+
+<!-- Editor Section -->
+<div class="editor-section" id="editorSection">
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <span class="file-name-display" id="fileName">dosya.pdf</span>
+            <span class="page-count" id="pageCount">0 sayfa</span>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-tool" onclick="resetAll()">{{ _('new_file') }}</button>
+            <button class="btn btn-tool" onclick="reverseOrder()" title="{{ _('reverse_order') }}">{{ _('reverse_order') }}</button>
+            <button class="btn btn-danger" id="deleteBtn" disabled onclick="deleteSelected()">
+                {{ _('delete_selected') }} (<span id="selectedCount">0</span>)
+            </button>
+            <button class="btn btn-save" id="saveBtn" onclick="saveReordered()">
+                {{ _('reorder_btn') }}
+            </button>
+        </div>
+    </div>
+
+    <div class="pages-grid" id="pagesGrid">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>{{ _('uploading') }}...</span>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <div class="instruction-item">
+            <div class="instruction-icon">↕️</div>
+            <span>{{ _('reorder_instr_drag') }}</span>
+        </div>
+        <div class="instruction-item">
+            <div class="instruction-icon">☑️</div>
+            <span>{{ _('reorder_instr_select') }}</span>
+        </div>
+        <div class="instruction-item">
+            <div class="instruction-icon">⬆️</div>
+            <span>{{ _('reorder_instr_move') }}</span>
+        </div>
+        <div class="instruction-item">
+            <div class="instruction-icon">💾</div>
+            <span>{{ _('reorder_instr_save') }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal" id="successModal">
+    <div class="modal-content">
+        <h3>{{ _('reorder_complete') }}</h3>
+        <p>{{ _('reorder_complete_desc') }}</p>
+        <a href="#" class="download-link" id="downloadLink">{{ _('download') }}</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let pdfFile = null;
+    let jobId = null;
+    let pages = [];
+    let selectedPages = new Set();
+    let draggedItem = null;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const pdfInput = document.getElementById('pdfInput');
+    const uploadSection = document.getElementById('uploadSection');
+    const editorSection = document.getElementById('editorSection');
+    const pagesGrid = document.getElementById('pagesGrid');
+
+    // Drag-drop on upload section
+    uploadSection.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadSection.style.borderColor = 'rgba(0,0,0,0.4)';
+        uploadSection.style.background = 'rgba(255,255,255,0.25)';
+    });
+    uploadSection.addEventListener('dragleave', () => {
+        uploadSection.style.borderColor = '';
+        uploadSection.style.background = '';
+    });
+    uploadSection.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadSection.style.borderColor = '';
+        uploadSection.style.background = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.toLowerCase().endsWith('.pdf')) {
+            handleUpload(file);
+        }
+    });
+
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.name.toLowerCase().endsWith('.pdf')) {
+            handleUpload(file);
+        }
+    });
+
+    async function handleUpload(file) {
+        pdfFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        uploadSection.classList.add('hidden');
+        editorSection.classList.add('active');
+        steps.setStep(1);
+        await loadThumbnails();
+    }
+
+    async function loadThumbnails() {
+        pagesGrid.innerHTML = '<div class="loading"><div class="spinner"></div><span>' + __('uploading') + '...</span></div>';
+
+        const formData = new FormData();
+        formData.append('pdf_file', pdfFile);
+
+        try {
+            const response = await fetch('/api/pdf-thumbnails', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                pages = data.thumbnails;
+                document.getElementById('pageCount').textContent = pages.length + ' sayfa';
+                renderPages();
+            } else {
+                pagesGrid.innerHTML = '<div class="loading">' + __('error') + ': ' + (data.error || __('error')) + '</div>';
+            }
+        } catch (error) {
+            pagesGrid.innerHTML = '<div class="loading">' + __('error') + '</div>';
+        }
+    }
+
+    function renderPages() {
+        pagesGrid.innerHTML = pages.map((page, index) => `
+            <div class="page-item ${selectedPages.has(page.page) ? 'selected' : ''}"
+                 data-page="${page.page}"
+                 data-index="${index}"
+                 draggable="true"
+                 ondragstart="handleDragStart(event)"
+                 ondragover="handleDragOver(event)"
+                 ondrop="handleDrop(event)"
+                 ondragend="handleDragEnd(event)">
+                <img src="${page.image}" alt="Sayfa ${page.page}" class="page-thumbnail">
+                <div class="page-number">${index + 1}</div>
+                <div class="page-actions">
+                    <button class="page-action-btn" onclick="moveToFirst(event, ${index})" title="${__('reorder_move_first')}">⬆</button>
+                    <button class="page-action-btn" onclick="moveToLast(event, ${index})" title="${__('reorder_move_last')}">⬇</button>
+                </div>
+                <div class="page-checkbox ${selectedPages.has(page.page) ? 'checked' : ''}"
+                     onclick="toggleSelect(event, ${page.page})">
+                    ${selectedPages.has(page.page) ? '✓' : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Move to first/last
+    function moveToFirst(e, index) {
+        e.stopPropagation();
+        if (index === 0) return;
+        const [item] = pages.splice(index, 1);
+        pages.unshift(item);
+        renderPages();
+    }
+
+    function moveToLast(e, index) {
+        e.stopPropagation();
+        if (index === pages.length - 1) return;
+        const [item] = pages.splice(index, 1);
+        pages.push(item);
+        renderPages();
+    }
+
+    // Reverse order
+    function reverseOrder() {
+        pages.reverse();
+        renderPages();
+        showToast(__('reverse_order_done'), 'info');
+    }
+
+    // Drag and drop
+    let ghostEl = null;
+
+    function handleDragStart(e) {
+        draggedItem = e.target.closest('.page-item');
+        draggedItem.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+
+        const img = draggedItem.querySelector('img');
+        if (img) {
+            ghostEl = document.createElement('div');
+            ghostEl.style.cssText = `
+                position: fixed; pointer-events: none; z-index: 10000;
+                width: 120px; padding: 8px; background: rgba(255,255,255,0.9);
+                border: 3px solid #f97316; border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(249, 115, 22, 0.5);
+                transform: rotate(5deg);
+            `;
+            const ghostImg = img.cloneNode();
+            ghostImg.style.cssText = 'width: 100%; border-radius: 8px;';
+            ghostEl.appendChild(ghostImg);
+            document.body.appendChild(ghostEl);
+            document.addEventListener('dragover', updateGhostPosition);
+        }
+    }
+
+    function updateGhostPosition(e) {
+        if (ghostEl) {
+            ghostEl.style.left = (e.clientX + 10) + 'px';
+            ghostEl.style.top = (e.clientY + 10) + 'px';
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        document.querySelectorAll('.page-item.drag-over').forEach(item => {
+            if (item !== e.target.closest('.page-item')) {
+                item.classList.remove('drag-over');
+            }
+        });
+        const item = e.target.closest('.page-item');
+        if (item && item !== draggedItem) {
+            item.classList.add('drag-over');
+        }
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const dropTarget = e.target.closest('.page-item');
+        if (dropTarget && dropTarget !== draggedItem) {
+            const draggedIdx = parseInt(draggedItem.dataset.index);
+            const dropIdx = parseInt(dropTarget.dataset.index);
+            const [removed] = pages.splice(draggedIdx, 1);
+            pages.splice(dropIdx, 0, removed);
+            renderPages();
+        }
+        document.querySelectorAll('.page-item').forEach(item => item.classList.remove('drag-over'));
+    }
+
+    function handleDragEnd(e) {
+        document.querySelectorAll('.page-item').forEach(item => {
+            item.classList.remove('dragging', 'drag-over');
+        });
+        if (ghostEl) {
+            ghostEl.remove();
+            ghostEl = null;
+            document.removeEventListener('dragover', updateGhostPosition);
+        }
+    }
+
+    // Selection
+    function toggleSelect(e, pageNum) {
+        e.stopPropagation();
+        if (selectedPages.has(pageNum)) {
+            selectedPages.delete(pageNum);
+        } else {
+            selectedPages.add(pageNum);
+        }
+        updateSelection();
+        renderPages();
+    }
+
+    function updateSelection() {
+        document.getElementById('selectedCount').textContent = selectedPages.size;
+        document.getElementById('deleteBtn').disabled = selectedPages.size === 0;
+    }
+
+    function deleteSelected() {
+        if (selectedPages.size === 0) return;
+        if (selectedPages.size >= pages.length) {
+            showToast(__('reorder_min_page'), 'error');
+            return;
+        }
+        pages = pages.filter(p => !selectedPages.has(p.page));
+        selectedPages.clear();
+        updateSelection();
+        renderPages();
+        showToast(__('reorder_pages_removed'), 'info');
+    }
+
+    async function saveReordered() {
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = __('reorder_btn_loading');
+
+        const uploadFormData = new FormData();
+        uploadFormData.append('pdf_file', pdfFile);
+
+        try {
+            // Step 1: Upload and get job_id
+            const uploadResp = await fetch('/api/reorder-upload', {
+                method: 'POST',
+                body: uploadFormData,
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            const uploadData = await uploadResp.json();
+
+            if (!uploadData.success) throw new Error(uploadData.error || __('error'));
+
+            jobId = uploadData.job_id;
+
+            // Step 2: Send new order with job_id
+            const newOrder = pages.map(p => p.page);
+
+            const response = await fetch('/api/reorder-pages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                body: JSON.stringify({
+                    job_id: jobId,
+                    new_order: newOrder
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('downloadLink').href = data.download_url;
+                document.getElementById('successModal').classList.add('active');
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'reorder');
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            showToast(__('error') + ': ' + error.message, 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = __('reorder_btn');
+        }
+    }
+
+    function resetAll() {
+        pdfFile = null;
+        jobId = null;
+        pages = [];
+        selectedPages.clear();
+        pdfInput.value = '';
+        uploadSection.classList.remove('hidden');
+        editorSection.classList.remove('active');
+        document.getElementById('successModal').classList.remove('active');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('successModal').addEventListener('click', (e) => {
+        if (e.target.id === 'successModal') {
+            document.getElementById('successModal').classList.remove('active');
+        }
+    });
+</script>
+{% endblock %}

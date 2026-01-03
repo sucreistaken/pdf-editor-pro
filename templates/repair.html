@@ -1,0 +1,775 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('repair_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}🔧{% endblock %}
+{% block header_title %}{{ _('repair_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('repair_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #701a75 0%, #9f1239 50%, #4c1d95 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    /* Feature Badges */
+    .feature-badges {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+    .badge {
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: white;
+        backdrop-filter: blur(8px);
+    }
+
+    /* Section Card */
+    .section-card {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 24px;
+        padding: 36px;
+        margin-bottom: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+        border: 3px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 50px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .upload-zone:hover {
+        border-color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.1);
+        transform: scale(1.01);
+    }
+
+    .upload-zone.has-file {
+        border-color: rgba(16, 185, 129, 0.6);
+        background: rgba(16, 185, 129, 0.08);
+    }
+
+    .upload-icon { font-size: 3.5rem; margin-bottom: 16px; }
+
+    .upload-zone h3 {
+        color: white;
+        margin-bottom: 8px;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .upload-zone p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+    }
+
+    .file-name-display {
+        margin-top: 14px;
+        color: #10b981;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    /* Buttons */
+    .btn-action {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 1.05rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 20px;
+        color: white;
+        font-family: inherit;
+        letter-spacing: 0.02em;
+    }
+
+    .btn-analyze {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
+    .btn-repair {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    .btn-optimize {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .btn-action:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        filter: brightness(1.1);
+    }
+
+    .btn-action:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .btn-reset {
+        width: 100%;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.95rem;
+        margin-top: 12px;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+
+    .btn-reset:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Analysis Section */
+    .analysis-result { display: none; }
+    .analysis-result.active { display: block; }
+
+    .health-indicator {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(10px);
+    }
+
+    .health-good {
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .health-warning {
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .health-bad {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .health-critical {
+        background: rgba(239, 68, 68, 0.25);
+        border: 1px solid rgba(239, 68, 68, 0.6);
+    }
+
+    .health-icon { font-size: 2.5rem; }
+
+    .health-text h4 {
+        font-size: 1.15rem;
+        margin-bottom: 4px;
+        color: white;
+    }
+
+    .health-text p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+    /* Metadata Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .info-item {
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-item .label {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .info-item .value {
+        font-weight: 600;
+        color: white;
+        font-size: 0.95rem;
+        word-break: break-word;
+    }
+
+    /* Issues List */
+    .issues-list { margin-top: 16px; }
+
+    .issues-list h4 {
+        margin-bottom: 12px;
+        color: white;
+        font-size: 0.95rem;
+    }
+
+    .issue-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: white;
+    }
+
+    .issue-item.error-issue {
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .issue-item.warning-issue {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .issue-item.fixed-issue {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    /* Progress Section */
+    .progress-section { display: none; }
+    .progress-section.active { display: block; }
+
+    .progress-title {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .progress-bar-wrapper {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #f97316, #10b981);
+        background-size: 300% 100%;
+        border-radius: 5px;
+        transition: width 0.4s ease;
+        width: 0%;
+        animation: progressGradient 3s ease infinite;
+    }
+
+    @keyframes progressGradient {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .progress-text {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+    /* Result Section */
+    .result-section { display: none; }
+    .result-section.active { display: block; }
+
+    .result-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .result-icon { font-size: 4rem; margin-bottom: 16px; }
+
+    .result-header h3 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        color: white;
+        font-weight: 800;
+    }
+
+    .result-header p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        text-align: center;
+        padding: 18px 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 4px;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .download-result-btn {
+        display: block;
+        text-align: center;
+        padding: 16px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        text-decoration: none;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        transition: all 0.3s;
+    }
+
+    .download-result-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(16, 185, 129, 0.4);
+        filter: brightness(1.1);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .section-card {
+            padding: 24px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="feature-badges" style="margin-top: -20px; margin-bottom: 30px;">
+    <span class="badge">{{ _('repair_badge_deep') }}</span>
+    <span class="badge">{{ _('repair_badge_page') }}</span>
+    <span class="badge">{{ _('repair_badge_optimize') }}</span>
+</div>
+
+<!-- Upload Section -->
+<div class="section-card" id="uploadSection">
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('pdfInput').click()">
+        <input type="file" id="pdfInput" accept=".pdf" hidden>
+        <div class="upload-icon">📄</div>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('upload_file_desc') }}</p>
+        <div class="file-name-display" id="fileNameDisplay" style="display: none;"></div>
+    </div>
+
+    <button class="btn-action btn-analyze" id="analyzeBtn" disabled onclick="analyzePdf()">
+        {{ _('repair_analyze') }}
+    </button>
+</div>
+
+<!-- Analysis Result Section -->
+<div class="section-card analysis-result" id="analysisSection">
+    <div class="health-indicator" id="healthIndicator">
+        <div class="health-icon" id="healthIcon"></div>
+        <div class="health-text">
+            <h4 id="healthTitle">{{ _('repair_status') }}</h4>
+            <p id="healthDesc">{{ _('repair_desc') }}</p>
+        </div>
+    </div>
+
+    <div class="info-grid" id="infoGrid"></div>
+
+    <div class="issues-list" id="issuesList"></div>
+
+    <button class="btn-action btn-repair" id="repairBtn" onclick="repairPdf()">
+        {{ _('repair_btn') }}
+    </button>
+</div>
+
+<!-- Progress Section -->
+<div class="section-card progress-section" id="progressSection">
+    <div class="progress-title">{{ _('repair_btn_loading') }}</div>
+    <div class="progress-bar-wrapper">
+        <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+    <p class="progress-text" id="progressText">{{ _('repair_analyzing') }}</p>
+</div>
+
+<!-- Result Section -->
+<div class="section-card result-section" id="resultSection">
+    <div class="result-header">
+        <div class="result-icon" id="resultIcon"></div>
+        <h3 id="resultTitle">{{ _('repair_complete') }}</h3>
+        <p id="resultDesc">{{ _('repair_complete_desc') }}</p>
+    </div>
+
+    <div class="stats-row" id="statsGrid"></div>
+
+    <div class="issues-list" id="fixedList"></div>
+
+    <a href="#" class="download-result-btn" id="downloadBtn">{{ _('download') }}</a>
+
+    <button class="btn-reset" onclick="resetAll()">{{ _('new_file') }}</button>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let pdfFile = null;
+    let analysisData = null;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const pdfInput = document.getElementById('pdfInput');
+    const uploadZone = document.getElementById('uploadZone');
+    const uploadSection = document.getElementById('uploadSection');
+    const analysisSection = document.getElementById('analysisSection');
+    const progressSection = document.getElementById('progressSection');
+    const resultSection = document.getElementById('resultSection');
+
+    // Drag-drop on upload zone
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = 'rgba(255,255,255,0.6)';
+        uploadZone.style.background = 'rgba(255,255,255,0.12)';
+    });
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.style.borderColor = '';
+        uploadZone.style.background = '';
+    });
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '';
+        uploadZone.style.background = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.toLowerCase().endsWith('.pdf')) {
+            handleFileSelect(file);
+        }
+    });
+
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFileSelect(file);
+    });
+
+    function handleFileSelect(file) {
+        pdfFile = file;
+        const display = document.getElementById('fileNameDisplay');
+        display.textContent = file.name + ' (' + formatSize(file.size) + ')';
+        display.style.display = 'block';
+        uploadZone.classList.add('has-file');
+        document.getElementById('analyzeBtn').disabled = false;
+    }
+
+    async function analyzePdf() {
+        if (!pdfFile) return;
+
+        const btn = document.getElementById('analyzeBtn');
+        btn.disabled = true;
+        btn.textContent = __('repair_analyzing');
+
+        const formData = new FormData();
+        formData.append('pdf_file', pdfFile);
+
+        try {
+            const response = await fetch('/api/pdf-analyze', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            analysisData = await response.json();
+
+            if (analysisData.success) {
+                showAnalysis(analysisData);
+            } else {
+                showToast(__('error') + ': ' + (analysisData.error || __('error')), 'error');
+            }
+        } catch (error) {
+            showToast(__('error') + ': ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = __('repair_analyze');
+        }
+    }
+
+    function showAnalysis(data) {
+        uploadSection.classList.add('hidden');
+        analysisSection.classList.add('active');
+        steps.setStep(1);
+
+        // Health indicator
+        const indicator = document.getElementById('healthIndicator');
+        const icon = document.getElementById('healthIcon');
+        const title = document.getElementById('healthTitle');
+        const desc = document.getElementById('healthDesc');
+
+        indicator.className = 'health-indicator';
+
+        const healthMap = {
+            good:     { cls: 'health-good',     icon: '✅', title: __('repair_health_good'),      desc: __('repair_health_good_desc') },
+            warning:  { cls: 'health-warning',  icon: '⚠️', title: __('repair_health_warning'), desc: __('repair_health_warning_desc') },
+            bad:      { cls: 'health-bad',      icon: '❌', title: __('repair_health_bad'),        desc: __('repair_health_bad_desc') },
+            critical: { cls: 'health-critical', icon: '🚨', title: __('repair_health_critical'),       desc: __('repair_health_critical_desc') }
+        };
+
+        const h = healthMap[data.health] || healthMap.bad;
+        indicator.classList.add(h.cls);
+        icon.textContent = h.icon;
+        title.textContent = h.title;
+        desc.textContent = h.desc;
+
+        // Metadata grid
+        const infoGrid = document.getElementById('infoGrid');
+        const info = data.info || {};
+        const metadata = data.metadata || {};
+
+        let gridHtml = '';
+        const fields = [
+            { label: __('repair_page_count'), value: info.page_count || metadata.page_count || __('repair_unknown') },
+            { label: __('repair_file_size'), value: formatSize(info.file_size || 0) },
+            { label: __('repair_meta_title'),       value: metadata.title || __('repair_not_specified') },
+            { label: __('repair_meta_author'),        value: metadata.author || __('repair_not_specified') },
+            { label: __('repair_meta_creator'),   value: metadata.creator || __('repair_unknown') },
+            { label: __('repair_meta_date'),        value: metadata.date || metadata.creation_date || __('repair_unknown') }
+        ];
+
+        fields.forEach(f => {
+            gridHtml += `
+                <div class="info-item">
+                    <div class="label">${f.label}</div>
+                    <div class="value">${f.value}</div>
+                </div>
+            `;
+        });
+        infoGrid.innerHTML = gridHtml;
+
+        // Issues & warnings
+        const issuesList = document.getElementById('issuesList');
+        let issuesHtml = '';
+
+        if (data.issues && data.issues.length > 0) {
+            issuesHtml += '<h4>' + __('repair_issues_found') + '</h4>';
+            data.issues.forEach(issue => {
+                issuesHtml += `<div class="issue-item error-issue">❌ ${issue}</div>`;
+            });
+        }
+
+        if (data.warnings && data.warnings.length > 0) {
+            issuesHtml += '<h4 style="margin-top: 16px;">' + __('repair_warnings') + '</h4>';
+            data.warnings.forEach(warning => {
+                issuesHtml += `<div class="issue-item warning-issue">⚠️ ${warning}</div>`;
+            });
+        }
+
+        issuesList.innerHTML = issuesHtml;
+
+        // Repair button text
+        const repairBtn = document.getElementById('repairBtn');
+        if (data.health === 'good' || !data.needs_repair) {
+            repairBtn.textContent = __('repair_optimize_only');
+            repairBtn.className = 'btn-action btn-optimize';
+        } else {
+            repairBtn.textContent = __('repair_btn');
+            repairBtn.className = 'btn-action btn-repair';
+        }
+    }
+
+    async function repairPdf() {
+        analysisSection.classList.remove('active');
+        progressSection.classList.add('active');
+
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        const steps = [__('repair_step_reading'), __('repair_step_scanning'), __('repair_step_repairing'), __('repair_step_optimizing'), __('repair_step_saving')];
+        let stepIndex = 0;
+
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 12;
+            if (progress > 90) progress = 90;
+            progressBar.style.width = progress + '%';
+
+            if (progress > stepIndex * 18 && stepIndex < steps.length) {
+                progressText.textContent = steps[stepIndex];
+                stepIndex++;
+            }
+        }, 350);
+
+        const formData = new FormData();
+        formData.append('pdf_file', pdfFile);
+
+        try {
+            const response = await fetch('/api/pdf-repair', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            });
+            const data = await response.json();
+
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressText.textContent = __('repair_complete');
+
+            setTimeout(() => showResult(data), 600);
+        } catch (error) {
+            clearInterval(progressInterval);
+            showToast(__('error') + ': ' + error.message, 'error');
+            resetAll();
+        }
+    }
+
+    function showResult(data) {
+        progressSection.classList.remove('active');
+        resultSection.classList.add('active');
+
+        const icon = document.getElementById('resultIcon');
+        const title = document.getElementById('resultTitle');
+        const desc = document.getElementById('resultDesc');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        if (data.success) {
+            icon.textContent = '✅';
+            title.textContent = __('repair_complete');
+            desc.textContent = data.deep_recovery
+                ? __('repair_deep_recovery_done')
+                : __('repair_complete_desc');
+
+            // Stats
+            const statsGrid = document.getElementById('statsGrid');
+            const originalSize = data.original_size || 0;
+            const repairedSize = data.repaired_size || 0;
+            let reduction = 0;
+            if (originalSize > 0 && repairedSize > 0) {
+                reduction = Math.round(((originalSize - repairedSize) / originalSize) * 100);
+            }
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #10b981;">${data.pages_recovered || 0}</div>
+                    <div class="stat-label">${__('repair_pages_recovered')}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #ef4444;">${data.pages_failed || 0}</div>
+                    <div class="stat-label">${__('repair_pages_failed')}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${formatSize(originalSize)}</div>
+                    <div class="stat-label">${__('repair_original_size')}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #8b5cf6;">${formatSize(repairedSize)}</div>
+                    <div class="stat-label">${__('repair_new_size')}</div>
+                </div>
+                ${reduction !== 0 ? `
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #f97316;">${Math.abs(reduction)}%</div>
+                    <div class="stat-label">${reduction > 0 ? __('repair_reduction') : __('repair_increase')}</div>
+                </div>` : ''}
+            `;
+
+            // Fixed issues
+            const fixedList = document.getElementById('fixedList');
+            let fixedHtml = '';
+            if (data.issues_fixed && data.issues_fixed.length > 0) {
+                fixedHtml = '<h4>' + __('repair_actions_done') + '</h4>';
+                data.issues_fixed.forEach(fix => {
+                    fixedHtml += `<div class="issue-item fixed-issue">✓ ${fix}</div>`;
+                });
+            }
+            fixedList.innerHTML = fixedHtml;
+
+            downloadBtn.href = data.download_url;
+            downloadBtn.style.display = 'block';
+            steps.setStep(2);
+            showRelatedTools(document.getElementById('relatedToolsContainer'), 'repair');
+        } else {
+            icon.textContent = '❌';
+            title.textContent = __('repair_failed');
+            desc.textContent = data.error || __('repair_failed_desc');
+            document.getElementById('statsGrid').innerHTML = '';
+            document.getElementById('fixedList').innerHTML = '';
+            downloadBtn.style.display = 'none';
+        }
+    }
+
+    function resetAll() {
+        pdfFile = null;
+        analysisData = null;
+        pdfInput.value = '';
+        document.getElementById('fileNameDisplay').style.display = 'none';
+        uploadZone.classList.remove('has-file');
+        document.getElementById('analyzeBtn').disabled = true;
+
+        uploadSection.classList.remove('hidden');
+        analysisSection.classList.remove('active');
+        progressSection.classList.remove('active');
+        resultSection.classList.remove('active');
+        document.getElementById('downloadBtn').style.display = 'block';
+
+        document.getElementById('progressBar').style.width = '0%';
+    }
+</script>
+{% endblock %}

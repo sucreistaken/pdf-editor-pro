@@ -1,0 +1,704 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('extract_images_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}🖼️{% endblock %}
+{% block header_title %}{{ _('extract_images_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('extract_images_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    /* Override text colors for dark gradient */
+    .back-link {
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.35);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .back-link:hover {
+        background: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .header h1, .header p {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .header p {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .drop-zone {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+        border-color: rgba(100, 150, 230, 0.6);
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .drop-zone h3 {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .drop-zone p, .drop-zone .file-limit {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .drop-zone svg {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* File info bar */
+    .file-info-bar {
+        margin-top: 20px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 14px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .file-info-bar.show {
+        display: flex;
+    }
+
+    .file-info-bar .file-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .file-info-bar .file-size {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .file-info-bar .change-btn {
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .file-info-bar .change-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Button overrides for dark theme */
+    .btn-primary {
+        background: rgba(100, 150, 230, 0.85);
+        border-color: rgba(100, 150, 230, 0.9);
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: rgba(80, 130, 220, 0.95);
+        box-shadow: 0 12px 32px rgba(100, 150, 230, 0.3);
+    }
+
+    /* Loading */
+    .extracting-indicator {
+        display: none;
+        text-align: center;
+        padding: 35px;
+        margin-top: 20px;
+    }
+
+    .extracting-indicator.show {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .extracting-indicator .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #6496e6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 14px;
+    }
+
+    .extracting-indicator span {
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Image result section */
+    .images-result {
+        display: none;
+        margin-top: 25px;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .images-result.show {
+        display: block;
+    }
+
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .result-header h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #059669;
+    }
+
+    .result-header .img-count {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 500;
+    }
+
+    /* Stats bar */
+    .images-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .img-stat-item {
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 14px;
+        padding: 16px 12px;
+        text-align: center;
+    }
+
+    .img-stat-item .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .img-stat-item .stat-label {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 4px;
+        font-weight: 500;
+    }
+
+    /* Image grid */
+    .extracted-images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .ext-img-card {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .ext-img-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+        border-color: rgba(100, 150, 230, 0.5);
+    }
+
+    .ext-img-card .img-preview {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        display: block;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ext-img-card .page-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.65);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        backdrop-filter: blur(6px);
+    }
+
+    .ext-img-card .img-details {
+        padding: 14px;
+    }
+
+    .ext-img-card .img-name {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: rgba(255, 255, 255, 0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 6px;
+    }
+
+    .ext-img-card .img-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ext-img-card .img-meta .img-format {
+        background: rgba(100, 150, 230, 0.15);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+    }
+
+    .ext-img-card .img-download {
+        display: block;
+        text-align: center;
+        padding: 10px;
+        background: rgba(100, 150, 230, 0.1);
+        border-top: 1px solid rgba(255, 255, 255, 0.5);
+        color: #93c5fd;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: all 0.3s;
+    }
+
+    .ext-img-card .img-download:hover {
+        background: rgba(100, 150, 230, 0.2);
+    }
+
+    /* Download all button */
+    .download-all-section {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .download-all-btn {
+        display: inline-block;
+        padding: 16px 32px;
+        background: #059669;
+        color: white;
+        text-decoration: none;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: all 0.3s;
+        box-shadow: 0 8px 20px rgba(5, 150, 105, 0.25);
+    }
+
+    .download-all-btn:hover {
+        background: #047857;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(5, 150, 105, 0.35);
+    }
+
+    /* No images */
+    .no-images-msg {
+        text-align: center;
+        padding: 50px 20px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .no-images-msg .no-img-icon {
+        font-size: 3rem;
+        margin-bottom: 14px;
+        display: block;
+    }
+
+    .no-images-msg p {
+        font-size: 1.05rem;
+        font-weight: 500;
+    }
+
+    /* Lightbox overlay */
+    .lightbox-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .lightbox-overlay.show {
+        display: flex;
+    }
+
+    .lightbox-overlay img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .lightbox-close:hover {
+        background: rgba(255, 255, 255, 0.35);
+    }
+
+    /* Error styling */
+    .result.error h3 {
+        color: #ef4444;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .extracted-images-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+
+        .images-stats {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .ext-img-card .img-preview {
+            height: 140px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .extracted-images-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .images-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .ext-img-card .img-preview {
+            height: 120px;
+        }
+
+        .result-header {
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div id="uploadSection">
+        <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" stroke-width="2"/>
+                <polyline points="21 15 16 10 5 21" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('upload_file') }}</h3>
+            <p>{{ _('extract_images_subtitle') }}</p>
+            <span class="file-limit">{{ _('max_file_size') }}</span>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+
+        <div class="file-info-bar" id="fileInfoBar">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <button class="change-btn" onclick="resetUpload()">{{ _('change') }}</button>
+        </div>
+    </div>
+
+    <!-- Extract Button -->
+    <button class="btn-primary" id="extractBtn" disabled>{{ _('extract_images_btn') }}</button>
+
+    <!-- Loading -->
+    <div class="extracting-indicator" id="extractingIndicator">
+        <div class="spinner"></div>
+        <span>{{ _('extract_images_btn_loading') }}</span>
+    </div>
+
+    <!-- Results -->
+    <div class="images-result" id="imagesResult">
+        <!-- Stats -->
+        <div class="images-stats" id="imagesStats"></div>
+
+        <!-- Header -->
+        <div class="result-header">
+            <h3 id="resultTitle">{{ _('extract_images_complete') }}</h3>
+            <span class="img-count" id="imgCountLabel"></span>
+        </div>
+
+        <!-- Images Grid -->
+        <div class="extracted-images-grid" id="imagesGrid"></div>
+
+        <!-- Download All -->
+        <div class="download-all-section" id="downloadAllSection"></div>
+    </div>
+
+    <!-- No images message -->
+    <div class="images-result" id="noImagesResult">
+        <div class="no-images-msg">
+            <span class="no-img-icon">📭</span>
+            <p>{{ _('extract_images_no_images') }}</p>
+        </div>
+    </div>
+
+    <!-- Error Result -->
+    <div class="result" id="errorResult"></div>
+</div>
+
+<!-- Lightbox Overlay -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">&#10005;</button>
+    <img id="lightboxImg" src="" alt="Onizleme">
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const extractBtn = document.getElementById('extractBtn');
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBar').classList.add('show');
+        dropZone.style.display = 'none';
+        extractBtn.disabled = false;
+        steps.setStep(1);
+
+        // Reset previous results
+        document.getElementById('imagesResult').classList.remove('show');
+        document.getElementById('noImagesResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('errorResult').classList.remove('show');
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        document.getElementById('fileInfoBar').classList.remove('show');
+        dropZone.style.display = '';
+        extractBtn.disabled = true;
+        document.getElementById('imagesResult').classList.remove('show');
+        document.getElementById('noImagesResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('errorResult').classList.remove('show');
+        document.getElementById('extractingIndicator').classList.remove('show');
+        fileInput.value = '';
+    }
+
+    function getFileExtension(filename) {
+        return filename.split('.').pop().toUpperCase();
+    }
+
+    function openLightbox(src) {
+        event.stopPropagation();
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightbox').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    // Close lightbox on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Extract
+    extractBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        extractBtn.disabled = true;
+        extractBtn.textContent = __('extract_images_btn_loading');
+        document.getElementById('imagesResult').classList.remove('show');
+        document.getElementById('noImagesResult').classList.remove('show');
+        document.getElementById('errorResult').className = 'result';
+        document.getElementById('extractingIndicator').classList.add('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        try {
+            const data = await uploadWithProgress('/api/extract-images', formData);
+
+            document.getElementById('extractingIndicator').classList.remove('show');
+
+            if (data.success) {
+                if (data.count === 0 || !data.images || data.images.length === 0) {
+                    document.getElementById('noImagesResult').classList.add('show');
+                    showToast(__('extract_images_no_images'), 'info');
+                    return;
+                }
+
+                const images = data.images;
+                const totalCount = data.count || images.length;
+
+                // Calculate unique pages
+                const uniquePages = new Set(images.map(img => img.page));
+
+                // Calculate total size
+                let totalSize = 0;
+                images.forEach(img => {
+                    if (img.size) totalSize += img.size;
+                });
+
+                // Render stats
+                document.getElementById('imagesStats').innerHTML = `
+                    <div class="img-stat-item">
+                        <div class="stat-value">${totalCount}</div>
+                        <div class="stat-label">${__('extract_images_total')}</div>
+                    </div>
+                    <div class="img-stat-item">
+                        <div class="stat-value">${uniquePages.size}</div>
+                        <div class="stat-label">${__('extract_images_pages')}</div>
+                    </div>
+                    <div class="img-stat-item">
+                        <div class="stat-value">${totalSize > 0 ? formatSize(totalSize) : '-'}</div>
+                        <div class="stat-label">${__('extract_images_total_size')}</div>
+                    </div>
+                `;
+
+                document.getElementById('imgCountLabel').textContent = __('extract_images_count', {count: totalCount});
+
+                // Render image grid
+                let gridHtml = '';
+                images.forEach((img, idx) => {
+                    const ext = getFileExtension(img.filename);
+                    const displayName = 'sayfa_' + img.page + '_gorsel_' + (idx + 1) + '.' + ext.toLowerCase();
+                    const sizeStr = img.size ? formatSize(img.size) : '';
+
+                    gridHtml += `
+                        <div class="ext-img-card">
+                            <div class="page-badge">${__('page')} ${img.page}</div>
+                            <img class="img-preview" src="${img.url}" alt="${displayName}"
+                                 onclick="openLightbox('${img.url}')"
+                                 loading="lazy">
+                            <div class="img-details">
+                                <div class="img-name" title="${displayName}">${displayName}</div>
+                                <div class="img-meta">
+                                    <span>${sizeStr}</span>
+                                    <span class="img-format">${ext}</span>
+                                </div>
+                            </div>
+                            <a href="${img.url}" download="${displayName}" class="img-download">${__('download')}</a>
+                        </div>
+                    `;
+                });
+                document.getElementById('imagesGrid').innerHTML = gridHtml;
+
+                // Download all button
+                if (data.zip_url) {
+                    document.getElementById('downloadAllSection').innerHTML = `
+                        <a href="${data.zip_url}" class="download-all-btn">${__('download_zip')}</a>
+                    `;
+                } else {
+                    document.getElementById('downloadAllSection').innerHTML = '';
+                }
+
+                document.getElementById('imagesResult').classList.add('show');
+                showToast(__('extract_images_complete'), 'success');
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'extract-images');
+
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            document.getElementById('extractingIndicator').classList.remove('show');
+            const errResult = document.getElementById('errorResult');
+            errResult.className = 'result error show';
+            errResult.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+            errResult.style.display = 'block';
+            showToast(error.message, 'error');
+        } finally {
+            extractBtn.disabled = false;
+            extractBtn.textContent = __('extract_images_btn');
+        }
+    });
+</script>
+{% endblock %}

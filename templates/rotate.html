@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('rotate_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}🔄{% endblock %}
+{% block header_title %}{{ _('rotate_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('rotate_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #b45309 0%, #b91c1c 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    /* Upload section */
+    .upload-section {
+        margin-bottom: 25px;
+    }
+
+    .file-info-bar {
+        margin-top: 20px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .file-info-bar.show {
+        display: flex;
+    }
+
+    .file-info-bar .file-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .file-info-bar .file-size {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .file-info-bar .change-btn {
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .file-info-bar .change-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Thumbnails section */
+    .thumbnails-section {
+        display: none;
+        margin-top: 25px;
+    }
+
+    .thumbnails-section.show {
+        display: block;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .section-label {
+        display: block;
+        margin-bottom: 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        color: white;
+    }
+
+    .selection-toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .selection-toolbar .sel-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .selection-toolbar .sel-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .selection-info {
+        margin-left: auto;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+    }
+
+    .thumb-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 14px;
+    }
+
+    .thumb-item {
+        position: relative;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        user-select: none;
+        overflow: hidden;
+    }
+
+    .thumb-item:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .thumb-item.selected {
+        border-color: rgba(245, 175, 25, 0.9);
+        background: rgba(245, 175, 25, 0.15);
+        box-shadow: 0 4px 20px rgba(245, 175, 25, 0.2);
+    }
+
+    .thumb-item img {
+        width: 100%;
+        border-radius: 8px;
+        aspect-ratio: 0.71;
+        object-fit: cover;
+        pointer-events: none;
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .thumb-item.selected img {
+        /* Rotation is applied via JS */
+    }
+
+    .thumb-item .page-label {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .thumb-item .check-mark {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .thumb-item.selected .check-mark {
+        background: #f5af19;
+        border-color: #f5af19;
+    }
+
+    /* Loading thumbnails */
+    .loading-thumbnails {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 50px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .loading-thumbnails .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #f5af19;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 14px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Rotation options */
+    .rotation-section {
+        margin-top: 25px;
+        display: none;
+    }
+
+    .rotation-section.show {
+        display: block;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .rotation-group {
+        display: flex;
+        gap: 12px;
+    }
+
+    .rotation-btn {
+        flex: 1;
+        padding: 20px 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-radius: 14px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .rotation-btn:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .rotation-btn.selected {
+        border-color: rgba(245, 175, 25, 0.9);
+        background: rgba(245, 175, 25, 0.15);
+        box-shadow: 0 4px 20px rgba(245, 175, 25, 0.15);
+    }
+
+    .rotation-btn .rot-icon {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .rotation-btn .rot-label {
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .rotation-btn .rot-desc {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 4px;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+        .rotation-group {
+            flex-direction: column;
+        }
+
+        .thumb-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+
+        .selection-toolbar {
+            flex-direction: column;
+        }
+
+        .selection-info {
+            margin-left: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_rotate') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div class="upload-section" id="uploadSection">
+        <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('upload_file') }}</h3>
+            <p>{{ _('rotate_subtitle') }}</p>
+            <span class="file-limit">Maksimum 100 MB</span>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+
+        <div class="file-info-bar" id="fileInfoBar">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <button class="change-btn" onclick="resetUpload()">{{ _('change_file') }}</button>
+        </div>
+    </div>
+
+    <!-- Thumbnails Section -->
+    <div class="thumbnails-section" id="thumbnailsSection">
+        <span class="section-label">{{ _('rotate_select_pages') }}</span>
+
+        <div class="selection-toolbar">
+            <button class="sel-btn" onclick="selectAll()">{{ _('select_all') }}</button>
+            <button class="sel-btn" onclick="clearSelection()">{{ _('clear_selection') }}</button>
+            <div class="selection-info">
+                <span id="selectionCount">0</span>
+            </div>
+        </div>
+
+        <div id="thumbContainer">
+            <div class="loading-thumbnails" id="loadingThumbs">
+                <div class="spinner"></div>
+                <span>{{ _('loading_pages') }}</span>
+            </div>
+            <div class="thumb-grid" id="thumbGrid"></div>
+        </div>
+    </div>
+
+    <!-- Rotation Options -->
+    <div class="rotation-section" id="rotationSection">
+        <span class="section-label">{{ _('rotate_angle') }}:</span>
+        <div class="rotation-group">
+            <button class="rotation-btn selected" data-rotation="90" onclick="selectRotation(this, 90)">
+                <span class="rot-icon">&#8635;</span>
+                <span class="rot-label">{{ _('rotate_90_right') }}</span>
+                <span class="rot-desc">{{ _('rotate_clockwise') }}</span>
+            </button>
+            <button class="rotation-btn" data-rotation="180" onclick="selectRotation(this, 180)">
+                <span class="rot-icon">&#8693;</span>
+                <span class="rot-label">180&#176;</span>
+                <span class="rot-desc">{{ _('rotate_flip') }}</span>
+            </button>
+            <button class="rotation-btn" data-rotation="270" onclick="selectRotation(this, 270)">
+                <span class="rot-icon">&#8634;</span>
+                <span class="rot-label">{{ _('rotate_270_left') }}</span>
+                <span class="rot-desc">{{ _('rotate_counterclockwise') }}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button class="btn-primary" id="rotateBtn" disabled>{{ _('rotate_btn') }}</button>
+
+    <!-- Result -->
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    let rotation = 90;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    let thumbnails = [];
+    let selectedPages = new Set();
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const rotateBtn = document.getElementById('rotateBtn');
+
+    // Drop zone setup
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBar').classList.add('show');
+        dropZone.style.display = 'none';
+
+        steps.setStep(1);
+        loadThumbnails();
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        thumbnails = [];
+        selectedPages.clear();
+        document.getElementById('fileInfoBar').classList.remove('show');
+        dropZone.style.display = '';
+        document.getElementById('thumbnailsSection').classList.remove('show');
+        document.getElementById('rotationSection').classList.remove('show');
+        rotateBtn.disabled = true;
+        document.getElementById('result').className = 'result';
+        fileInput.value = '';
+    }
+
+    async function loadThumbnails() {
+        const thumbSection = document.getElementById('thumbnailsSection');
+        const loadingEl = document.getElementById('loadingThumbs');
+        const gridEl = document.getElementById('thumbGrid');
+
+        thumbSection.classList.add('show');
+        loadingEl.style.display = 'flex';
+        gridEl.innerHTML = '';
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        try {
+            const data = await uploadWithProgress('/api/rotate-thumbnails', formData);
+
+            if (data.success && data.thumbnails) {
+                thumbnails = data.thumbnails;
+                loadingEl.style.display = 'none';
+                renderThumbnails();
+                document.getElementById('rotationSection').classList.add('show');
+                updateRotateButton();
+            } else {
+                throw new Error(data.error || __('rotate_thumbnails_error'));
+            }
+        } catch (error) {
+            loadingEl.innerHTML = '<span style="color:#ef4444;">' + error.message + '</span>';
+            showToast(error.message, 'error');
+        }
+    }
+
+    function renderThumbnails() {
+        const gridEl = document.getElementById('thumbGrid');
+        gridEl.innerHTML = thumbnails.map((thumb, i) => {
+            const isSelected = selectedPages.has(thumb.page);
+            return `<div class="thumb-item ${isSelected ? 'selected' : ''}"
+                         onclick="togglePage(${thumb.page})"
+                         data-page="${thumb.page}">
+                        <img src="${thumb.image}" alt="${__('page')} ${thumb.page}">
+                        <div class="check-mark">${isSelected ? '&#10003;' : ''}</div>
+                        <div class="page-label">${__('page')} ${thumb.page}</div>
+                    </div>`;
+        }).join('');
+        updateSelectionCount();
+    }
+
+    function togglePage(pageNum) {
+        if (selectedPages.has(pageNum)) {
+            selectedPages.delete(pageNum);
+        } else {
+            selectedPages.add(pageNum);
+        }
+        renderThumbnails();
+        updateRotateButton();
+        applyRotationPreview();
+    }
+
+    function selectAll() {
+        thumbnails.forEach(t => selectedPages.add(t.page));
+        renderThumbnails();
+        updateRotateButton();
+        applyRotationPreview();
+    }
+
+    function clearSelection() {
+        selectedPages.clear();
+        renderThumbnails();
+        updateRotateButton();
+        applyRotationPreview();
+    }
+
+    function updateSelectionCount() {
+        const count = selectedPages.size;
+        document.getElementById('selectionCount').textContent =
+            count === 0 ? '0 ' + __('pages_selected') : count + ' ' + __('pages_selected');
+    }
+
+    function updateRotateButton() {
+        rotateBtn.disabled = !selectedFile;
+    }
+
+    function selectRotation(btn, value) {
+        rotation = value;
+        document.querySelectorAll('.rotation-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        applyRotationPreview();
+    }
+
+    function applyRotationPreview() {
+        document.querySelectorAll('.thumb-item').forEach(item => {
+            const img = item.querySelector('img');
+            if (item.classList.contains('selected')) {
+                // 90/270 derece dondurmede en-boy orani degisir, daha kucuk scale gerekir
+                const needsAspectFix = (rotation === 90 || rotation === 270);
+                const scale = needsAspectFix ? 0.71 : 0.85;
+                img.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+            } else {
+                img.style.transform = '';
+            }
+        });
+    }
+
+    // Rotate
+    rotateBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        rotateBtn.disabled = true;
+        rotateBtn.textContent = __('rotate_btn_loading');
+        document.getElementById('result').className = 'result';
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('rotation', rotation);
+
+        if (selectedPages.size > 0 && selectedPages.size < thumbnails.length) {
+            formData.append('pages', Array.from(selectedPages).join(','));
+        } else {
+            formData.append('pages', 'all');
+        }
+
+        try {
+            const data = await uploadWithProgress('/api/rotate', formData);
+            const result = document.getElementById('result');
+
+            if (data.success) {
+                steps.setStep(2);
+                result.className = 'result show';
+                result.innerHTML = `
+                    <h3>${__('rotate_complete')}</h3>
+                    <p>${data.message || __('rotate_success_msg')}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                result.style.display = 'block';
+                showToast(__('rotate_complete'), 'success');
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'rotate');
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+            result.style.display = 'block';
+            showToast(error.message, 'error');
+        } finally {
+            rotateBtn.disabled = false;
+            rotateBtn.textContent = __('rotate_btn');
+        }
+    });
+</script>
+{% endblock %}
