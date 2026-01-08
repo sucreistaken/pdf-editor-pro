@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('metadata_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}📋{% endblock %}
+{% block header_title %}{{ _('metadata_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('metadata_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #7e22ce 0%, #be123c 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .metadata-form {
+        display: none;
+        margin-top: 25px;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .metadata-form.show {
+        display: block;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .readonly-field input {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+
+    .info-item {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .info-item .info-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+
+    .info-item .info-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .btn-group .btn-primary {
+        margin-top: 0;
+    }
+
+    .btn-danger {
+        flex: 1;
+        padding: 18px;
+        background: rgba(239, 68, 68, 0.25);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(239, 68, 68, 0.4);
+        color: white;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        letter-spacing: 0.02em;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+        transform: translateY(-3px);
+        background: rgba(239, 68, 68, 0.4);
+        box-shadow: 0 12px 32px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .file-selected-info {
+        margin-top: 15px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: none;
+    }
+
+    .file-selected-info .file-name {
+        font-weight: 600;
+        color: white;
+    }
+
+    .file-selected-info .file-size {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+        .form-row,
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('metadata_subtitle') }}</p>
+        <span class="file-limit">Maksimum: 100 MB</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-selected-info" id="fileSelectedInfo">
+        <div class="file-name" id="selectedFileName"></div>
+        <div class="file-size" id="selectedFileSize"></div>
+    </div>
+
+    <div class="inline-preview" id="inlinePreview"></div>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Metadata Form -->
+    <div class="metadata-form" id="metadataForm">
+        <!-- Read-only info -->
+        <div class="section-title">Dosya Bilgileri</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Sayfa Sayisi</div>
+                <div class="info-value" id="infoPageCount">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Dosya Boyutu</div>
+                <div class="info-value" id="infoFileSize">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Olusturma Tarihi</div>
+                <div class="info-value" id="infoCreationDate">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Degisiklik Tarihi</div>
+                <div class="info-value" id="infoModDate">-</div>
+            </div>
+        </div>
+
+        <!-- Editable fields -->
+        <div class="section-title">Metadata Alanlari</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Baslik</label>
+                <input type="text" id="metaTitle" placeholder="PDF basligi">
+            </div>
+            <div class="form-group">
+                <label>Yazar</label>
+                <input type="text" id="metaAuthor" placeholder="Yazar adi">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Konu</label>
+                <input type="text" id="metaSubject" placeholder="Konu">
+            </div>
+            <div class="form-group">
+                <label>Anahtar Kelimeler</label>
+                <input type="text" id="metaKeywords" placeholder="kelime1, kelime2, kelime3">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Olusturan</label>
+                <input type="text" id="metaCreator" placeholder="Olusturan uygulama">
+            </div>
+            <div class="form-group">
+                <label>Uretici</label>
+                <input type="text" id="metaProducer" placeholder="PDF ureticisi">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-primary" id="updateBtn">{{ _('metadata_btn_update') }}</button>
+            <button class="btn-danger" id="clearBtn">{{ _('metadata_btn_clear') }}</button>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}<div id="relatedToolsContainer"></div>{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    let currentJobId = null;
+    let selectedFile = null;
+
+    // Drop zone setup
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+
+        selectedFile = file;
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('selectedFileSize').textContent = formatSize(file.size);
+        document.getElementById('fileSelectedInfo').style.display = 'block';
+        document.getElementById('metadataForm').classList.remove('show');
+        document.getElementById('result').classList.remove('show');
+
+        showInlinePreview(file, document.getElementById('inlinePreview'));
+        uploadFile(file);
+    }
+
+    async function uploadFile(file) {
+        const progressEl = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        progressEl.classList.add('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', file);
+
+        try {
+            const data = await uploadWithProgress('/api/metadata', formData, {
+                onProgress: (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = `${__('uploading')} %${percent}`;
+                }
+            });
+
+            progressEl.classList.remove('show');
+
+            if (data.success) {
+                currentJobId = data.job_id;
+                populateForm(data);
+                document.getElementById('metadataForm').classList.add('show');
+                steps.setStep(1);
+            } else {
+                throw new Error(data.error || 'Metadata okunamadi');
+            }
+        } catch (error) {
+            progressEl.classList.remove('show');
+            showToast(error.message, 'error');
+        }
+    }
+
+    function populateForm(data) {
+        const meta = data.metadata || {};
+
+        // Read-only info
+        document.getElementById('infoPageCount').textContent = data.page_count || '-';
+        document.getElementById('infoFileSize').textContent = data.file_size || '-';
+        document.getElementById('infoCreationDate').textContent = meta.creation_date || '-';
+        document.getElementById('infoModDate').textContent = meta.mod_date || '-';
+
+        // Editable fields
+        document.getElementById('metaTitle').value = meta.title || '';
+        document.getElementById('metaAuthor').value = meta.author || '';
+        document.getElementById('metaSubject').value = meta.subject || '';
+        document.getElementById('metaKeywords').value = meta.keywords || '';
+        document.getElementById('metaCreator').value = meta.creator || '';
+        document.getElementById('metaProducer').value = meta.producer || '';
+    }
+
+    // Update metadata
+    document.getElementById('updateBtn').addEventListener('click', async () => {
+        if (!currentJobId) {
+            showToast(__('error'), 'error');
+            return;
+        }
+
+        const btn = document.getElementById('updateBtn');
+        btn.disabled = true;
+        btn.textContent = __('uploading');
+        document.getElementById('result').classList.remove('show');
+
+        const payload = {
+            job_id: currentJobId,
+            metadata: {
+                title: document.getElementById('metaTitle').value,
+                author: document.getElementById('metaAuthor').value,
+                subject: document.getElementById('metaSubject').value,
+                keywords: document.getElementById('metaKeywords').value,
+                creator: document.getElementById('metaCreator').value,
+                producer: document.getElementById('metaProducer').value
+            }
+        };
+
+        try {
+            const response = await fetch('/api/metadata/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            const result = document.getElementById('result');
+
+            if (data.success) {
+                result.className = 'result show';
+                result.innerHTML = `<h3>${__('metadata_complete')}</h3>
+                    <p>Metadata bilgileri basariyla kaydedildi.</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'metadata');
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = __('metadata_btn_update');
+        }
+    });
+
+    // Clear metadata
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+        if (!currentJobId) {
+            showToast(__('error'), 'error');
+            return;
+        }
+
+        if (!confirm(__('metadata_btn_clear') + '?')) {
+            return;
+        }
+
+        const btn = document.getElementById('clearBtn');
+        btn.disabled = true;
+        btn.textContent = __('uploading');
+        document.getElementById('result').classList.remove('show');
+
+        const payload = {
+            job_id: currentJobId
+        };
+
+        try {
+            const response = await fetch('/api/metadata/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            const result = document.getElementById('result');
+
+            if (data.success) {
+                result.className = 'result show';
+                result.innerHTML = `<h3>${__('metadata_complete')}</h3>
+                    <p>Tum metadata bilgileri basariyla silindi.</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'metadata');
+
+                // Clear form fields
+                document.getElementById('metaTitle').value = '';
+                document.getElementById('metaAuthor').value = '';
+                document.getElementById('metaSubject').value = '';
+                document.getElementById('metaKeywords').value = '';
+                document.getElementById('metaCreator').value = '';
+                document.getElementById('metaProducer').value = '';
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = __('metadata_btn_clear');
+        }
+    });
+</script>
+{% endblock %}

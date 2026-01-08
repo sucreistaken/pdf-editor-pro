@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('form_fill_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📝{% endblock %}
+{% block header_title %}{{ _('form_fill_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('form_fill_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-box {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px; display: none; color: white;
+    }
+    .file-info-box .file-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .file-info-box .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+    .fields-section {
+        margin-top: 24px; display: none;
+    }
+    .fields-header {
+        color: white; font-weight: 700; font-size: 1rem; margin-bottom: 16px;
+    }
+    .field-row {
+        display: grid; grid-template-columns: 1fr auto 2fr; gap: 12px;
+        align-items: center; margin-bottom: 12px; padding: 12px 16px;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 10px;
+    }
+    .field-name { color: white; font-weight: 600; font-size: 0.9rem; word-break: break-all; }
+    .field-type {
+        padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+        background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); text-transform: uppercase;
+    }
+    .field-input {
+        padding: 8px 12px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+        color: white; font-size: 0.9rem; width: 100%; outline: none;
+    }
+    .field-input:focus { border-color: rgba(255,255,255,0.4); }
+    .field-input[type="checkbox"] { width: auto; cursor: pointer; }
+
+    .no-fields {
+        text-align: center; padding: 24px; color: rgba(255,255,255,0.6);
+        font-size: 0.95rem;
+    }
+
+    @media (max-width: 600px) {
+        .field-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="70" height="70">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 18V12M9 15l3-3 3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('form_fill_subtitle') }}</p>
+        <span class="file-limit">{{ _('upload_limit') }}</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-info-box" id="fileInfoBox">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+    </div>
+
+    <button class="btn-primary" id="detectBtn" disabled>{{ _('form_fill_detect') }}</button>
+
+    <div class="fields-section" id="fieldsSection">
+        <div class="inline-preview" id="previewContainer" style="margin-bottom:16px;"></div>
+        <div class="fields-header" id="fieldsHeader"></div>
+        <div id="fieldsContainer"></div>
+        <button class="btn-primary" id="fillBtn" style="margin-top: 16px;">{{ _('form_fill_btn') }}</button>
+    </div>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    let jobId = null;
+    let formFields = [];
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const detectBtn = document.getElementById('detectBtn');
+    const fillBtn = document.getElementById('fillBtn');
+    const resultDiv = document.getElementById('result');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBox').style.display = 'block';
+        detectBtn.disabled = false;
+        detectBtn.style.display = '';
+        document.getElementById('fieldsSection').style.display = 'none';
+        resultDiv.className = 'result';
+    }
+
+    detectBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        detectBtn.disabled = true;
+        detectBtn.textContent = __('form_fill_detecting');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/form-fields', formData, {
+                onProgress: (percent) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(1);
+                jobId = data.job_id;
+                formFields = data.fields;
+
+                showInlinePreview(selectedFile, document.getElementById('previewContainer'));
+
+                const section = document.getElementById('fieldsSection');
+                const header = document.getElementById('fieldsHeader');
+                const container = document.getElementById('fieldsContainer');
+
+                if (formFields.length === 0) {
+                    header.textContent = '';
+                    container.innerHTML = '<div class="no-fields">' + __('form_fill_no_fields') + '</div>';
+                    fillBtn.style.display = 'none';
+                } else {
+                    header.textContent = __('form_fill_fields_found', {count: formFields.length});
+                    fillBtn.style.display = '';
+
+                    let html = '';
+                    formFields.forEach((f, i) => {
+                        let inputHtml;
+                        if (f.is_checkbox) {
+                            const checked = f.value === 'Yes' ? 'checked' : '';
+                            inputHtml = `<input type="checkbox" class="field-input" data-field="${f.name}" ${checked}>`;
+                        } else if (f.choices && f.choices.length > 0) {
+                            inputHtml = `<select class="field-input" data-field="${f.name}">
+                                ${f.choices.map(c => `<option value="${c}" ${c === f.value ? 'selected' : ''}>${c}</option>`).join('')}
+                            </select>`;
+                        } else {
+                            inputHtml = `<input type="text" class="field-input" data-field="${f.name}" value="${(f.value || '').replace(/"/g,'&quot;')}" placeholder="${f.name}">`;
+                        }
+
+                        html += `
+                            <div class="field-row">
+                                <div class="field-name">${f.name}</div>
+                                <div class="field-type">${f.type}</div>
+                                ${inputHtml}
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                }
+
+                section.style.display = 'block';
+                detectBtn.style.display = 'none';
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            showToast(error.message, 'error');
+        } finally {
+            detectBtn.disabled = false;
+            detectBtn.textContent = __('form_fill_detect');
+        }
+    });
+
+    fillBtn.addEventListener('click', async () => {
+        if (!jobId) return;
+
+        fillBtn.disabled = true;
+        fillBtn.classList.add('loading');
+
+        const fields = {};
+        document.querySelectorAll('.field-input').forEach(input => {
+            const name = input.dataset.field;
+            if (input.type === 'checkbox') {
+                fields[name] = input.checked ? 'true' : 'false';
+            } else {
+                fields[name] = input.value;
+            }
+        });
+
+        try {
+            const resp = await fetch('/api/form-fill', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ job_id: jobId, fields: fields })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                steps.setStep(2);
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = `
+                    <h3>${__('form_fill_complete')}</h3>
+                    <p>${data.filled_count} ${__('form_fill_field_name')}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'form-fill');
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = '<h3>' + __('error') + '</h3><p>' + error.message + '</p>';
+        } finally {
+            fillBtn.disabled = false;
+            fillBtn.classList.remove('loading');
+            fillBtn.textContent = __('form_fill_btn');
+        }
+    });
+</script>
+{% endblock %}

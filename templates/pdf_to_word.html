@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('pdf_to_word_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📄{% endblock %}
+{% block header_title %}{{ _('pdf_to_word_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('pdf_to_word_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-box {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px; display: none; color: white;
+    }
+    .file-info-box .file-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .file-info-box .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="70" height="70">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 18V12M9 15l3-3 3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('pdf_to_word_subtitle') }}</p>
+        <span class="file-limit">{{ _('upload_limit') }}</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-info-box" id="fileInfoBox">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+    </div>
+    <div class="inline-preview" id="inlinePreview"></div>
+
+    <button class="btn-primary" id="convertBtn" disabled>{{ _('pdf_to_word_btn') }}</button>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultDiv = document.getElementById('result');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBox').style.display = 'block';
+        convertBtn.disabled = false;
+        steps.setStep(1);
+        showInlinePreview(file, document.getElementById('inlinePreview'));
+    }
+
+    convertBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        convertBtn.disabled = true;
+        convertBtn.classList.add('loading');
+        resultDiv.className = 'result';
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/pdf-to-word', formData, {
+                onProgress: (percent) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = `
+                    <h3>${__('pdf_to_word_complete')}</h3>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-word');
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = '<h3>' + __('error') + '</h3><p>' + error.message + '</p>';
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.classList.remove('loading');
+            convertBtn.textContent = __('pdf_to_word_btn');
+        }
+    });
+</script>
+{% endblock %}

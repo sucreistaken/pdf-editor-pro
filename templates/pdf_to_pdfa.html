@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('pdf_to_pdfa_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📄{% endblock %}
+{% block header_title %}{{ _('pdf_to_pdfa_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('pdf_to_pdfa_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-box {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px; display: none; color: white;
+    }
+    .file-info-box .file-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .file-info-box .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+    .version-section { margin-top: 24px; }
+    .version-section > label { display: block; color: white; font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; }
+
+    .version-options { display: flex; gap: 12px; }
+    .version-option {
+        flex: 1; padding: 16px; text-align: center;
+        background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15);
+        border-radius: 14px; cursor: pointer; transition: all 0.3s; color: white;
+    }
+    .version-option:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+    .version-option.selected { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.5); }
+    .version-option .version-name { font-weight: 800; font-size: 1.1rem; margin-bottom: 6px; }
+    .version-option .version-desc { font-size: 0.75rem; color: rgba(255,255,255,0.55); }
+
+    @media (max-width: 500px) { .version-options { flex-direction: column; } }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_process') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="70" height="70">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 18V12M9 15l3-3 3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('pdf_to_pdfa_subtitle') }}</p>
+        <span class="file-limit">{{ _('upload_limit') }}</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-info-box" id="fileInfoBox">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+    </div>
+    <div class="inline-preview" id="inlinePreview"></div>
+
+    <div class="version-section">
+        <label>{{ _('pdf_to_pdfa_version') }}</label>
+        <div class="version-options">
+            <div class="version-option" data-version="1b" onclick="selectVersion('1b')">
+                <div class="version-name">PDF/A-1b</div>
+                <div class="version-desc">ISO 19005-1 (2005)</div>
+            </div>
+            <div class="version-option selected" data-version="2b" onclick="selectVersion('2b')">
+                <div class="version-name">PDF/A-2b</div>
+                <div class="version-desc">ISO 19005-2 (2011)</div>
+            </div>
+            <div class="version-option" data-version="3b" onclick="selectVersion('3b')">
+                <div class="version-name">PDF/A-3b</div>
+                <div class="version-desc">ISO 19005-3 (2012)</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-primary" id="convertBtn" disabled>{{ _('pdf_to_pdfa_btn') }}</button>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    let pdfaVersion = '2b';
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultDiv = document.getElementById('result');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBox').style.display = 'block';
+        convertBtn.disabled = false;
+        steps.setStep(1);
+        showInlinePreview(file, document.getElementById('inlinePreview'));
+    }
+
+    function selectVersion(v) {
+        pdfaVersion = v;
+        document.querySelectorAll('.version-option').forEach(o => o.classList.remove('selected'));
+        document.querySelector(`.version-option[data-version="${v}"]`).classList.add('selected');
+    }
+
+    convertBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        convertBtn.disabled = true;
+        convertBtn.classList.add('loading');
+        resultDiv.className = 'result';
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('version', pdfaVersion);
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/pdf-to-pdfa', formData, {
+                onProgress: (percent) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = `
+                    <h3>${__('pdf_to_pdfa_complete')}</h3>
+                    <p style="color:rgba(255,255,255,0.7);margin-bottom:12px;">${data.version}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                `;
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-pdfa');
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = '<h3>' + __('error') + '</h3><p>' + error.message + '</p>';
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.classList.remove('loading');
+            convertBtn.textContent = __('pdf_to_pdfa_btn');
+        }
+    });
+</script>
+{% endblock %}

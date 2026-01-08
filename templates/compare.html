@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('compare_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}📋{% endblock %}
+{% block header_title %}{{ _('compare_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('compare_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .dual-upload { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .upload-box {
+        padding: 24px; text-align: center;
+        background: rgba(255,255,255,0.08); border: 2px dashed rgba(255,255,255,0.2);
+        border-radius: 14px; cursor: pointer; transition: all 0.3s; color: white;
+    }
+    .upload-box:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35); }
+    .upload-box.has-file { border-style: solid; border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.1); }
+    .upload-box .upload-icon { font-size: 2rem; margin-bottom: 10px; }
+    .upload-box .upload-label { font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
+    .upload-box .upload-file-name { font-size: 0.8rem; color: rgba(255,255,255,0.6); word-break: break-all; }
+    .upload-box input[type="file"] { display: none; }
+
+    .compare-results { margin-top: 24px; }
+    .page-result {
+        margin-bottom: 20px; padding: 16px;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 12px;
+    }
+    .page-result-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .page-result-title { font-weight: 700; color: white; font-size: 0.95rem; }
+    .status-badge {
+        padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    }
+    .status-identical { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .status-different { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .status-missing { background: rgba(245,158,11,0.2); color: #fcd34d; }
+
+    .diff-image { max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.1); }
+    .text-diff {
+        margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.3);
+        border-radius: 8px; font-family: monospace; font-size: 0.8rem;
+        color: rgba(255,255,255,0.8); white-space: pre-wrap; max-height: 200px; overflow-y: auto;
+    }
+
+    .summary-box {
+        padding: 20px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 14px; text-align: center; color: white; margin-bottom: 20px;
+    }
+    .summary-box h3 { margin-bottom: 8px; }
+    .summary-stats { display: flex; justify-content: center; gap: 32px; margin-top: 12px; }
+    .summary-stat-value { font-size: 1.5rem; font-weight: 800; }
+    .summary-stat-label { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+
+    @media (max-width: 600px) { .dual-upload { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('compare_btn') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('success') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="dual-upload">
+        <div class="upload-box" id="uploadBox1" onclick="document.getElementById('fileInput1').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-label">{{ _('compare_file1') }}</div>
+            <div class="upload-file-name" id="fileName1">{{ _('upload_drag') }}</div>
+            <input type="file" id="fileInput1" accept=".pdf">
+            <div class="upload-preview-thumb" id="preview1" onclick="event.stopPropagation()"></div>
+        </div>
+        <div class="upload-box" id="uploadBox2" onclick="document.getElementById('fileInput2').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-label">{{ _('compare_file2') }}</div>
+            <div class="upload-file-name" id="fileName2">{{ _('upload_drag') }}</div>
+            <input type="file" id="fileInput2" accept=".pdf">
+            <div class="upload-preview-thumb" id="preview2" onclick="event.stopPropagation()"></div>
+        </div>
+    </div>
+
+    <button class="btn-primary" id="compareBtn" disabled>{{ _('compare_btn') }}</button>
+
+    <div class="upload-progress" id="uploadProgress">
+        <div class="progress-text" id="progressText">{{ _('uploading') }}</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let file1 = null, file2 = null;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    const compareBtn = document.getElementById('compareBtn');
+    const resultDiv = document.getElementById('result');
+
+    document.getElementById('fileInput1').addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            if (!validatePDF(e.target.files[0])) return;
+            file1 = e.target.files[0];
+            document.getElementById('fileName1').textContent = file1.name;
+            document.getElementById('uploadBox1').classList.add('has-file');
+            loadPreview(file1, document.getElementById('preview1'), { width: 250 });
+            checkReady();
+        }
+    });
+
+    document.getElementById('fileInput2').addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            if (!validatePDF(e.target.files[0])) return;
+            file2 = e.target.files[0];
+            document.getElementById('fileName2').textContent = file2.name;
+            document.getElementById('uploadBox2').classList.add('has-file');
+            loadPreview(file2, document.getElementById('preview2'), { width: 250 });
+            checkReady();
+        }
+    });
+
+    // Drop support
+    ['uploadBox1', 'uploadBox2'].forEach((id, idx) => {
+        const box = document.getElementById(id);
+        box.addEventListener('dragover', (e) => { e.preventDefault(); box.style.borderColor = 'rgba(255,255,255,0.5)'; });
+        box.addEventListener('dragleave', () => { box.style.borderColor = ''; });
+        box.addEventListener('drop', (e) => {
+            e.preventDefault(); box.style.borderColor = '';
+            const f = e.dataTransfer.files[0];
+            if (f && validatePDF(f)) {
+                if (idx === 0) { file1 = f; document.getElementById('fileName1').textContent = f.name; box.classList.add('has-file'); loadPreview(f, document.getElementById('preview1'), { width: 250 }); }
+                else { file2 = f; document.getElementById('fileName2').textContent = f.name; box.classList.add('has-file'); loadPreview(f, document.getElementById('preview2'), { width: 250 }); }
+                checkReady();
+            }
+        });
+    });
+
+    function checkReady() {
+        compareBtn.disabled = !(file1 && file2);
+        if (file1 && file2) steps.setStep(1);
+    }
+
+    compareBtn.addEventListener('click', async () => {
+        if (!file1 || !file2) return;
+
+        compareBtn.disabled = true;
+        compareBtn.classList.add('loading');
+        resultDiv.className = 'result';
+
+        const formData = new FormData();
+        formData.append('pdf_file_1', file1);
+        formData.append('pdf_file_2', file2);
+
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+
+        try {
+            const data = await uploadWithProgress('/api/compare', formData, {
+                onProgress: (percent) => {
+                    uploadProgress.classList.add('show');
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = __('uploading') + ' ' + percent + '%';
+                }
+            });
+
+            uploadProgress.classList.remove('show');
+
+            if (data.success) {
+                steps.setStep(2);
+                let html = `
+                    <div class="summary-box">
+                        <h3>${__('compare_complete')}</h3>
+                        <div class="summary-stats">
+                            <div><div class="summary-stat-value">${data.pages_file1}</div><div class="summary-stat-label">${__('compare_file1')}</div></div>
+                            <div><div class="summary-stat-value">${data.pages_file2}</div><div class="summary-stat-label">${__('compare_file2')}</div></div>
+                            <div><div class="summary-stat-value">${data.pages_with_differences}</div><div class="summary-stat-label">${__('compare_different')}</div></div>
+                        </div>
+                    </div>
+                    <div class="compare-results">
+                `;
+
+                if (data.pages_with_differences === 0) {
+                    html += `<p style="text-align:center;color:rgba(255,255,255,0.7);">✅ ${__('compare_no_diff')}</p>`;
+                }
+
+                data.results.forEach(r => {
+                    let statusClass = 'status-identical';
+                    let statusText = __('compare_identical');
+                    if (r.status === 'different') { statusClass = 'status-different'; statusText = __('compare_different'); }
+                    else if (r.status === 'only_in_first') { statusClass = 'status-missing'; statusText = __('compare_only_first'); }
+                    else if (r.status === 'only_in_second') { statusClass = 'status-missing'; statusText = __('compare_only_second'); }
+
+                    html += `
+                        <div class="page-result">
+                            <div class="page-result-header">
+                                <span class="page-result-title">${__('page')} ${r.page}</span>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                    `;
+
+                    if (r.diff_image) {
+                        html += `<div><strong>${__('compare_visual_diff')}:</strong><img src="${r.diff_image}" class="diff-image"></div>`;
+                    }
+                    if (r.text_diff) {
+                        html += `<div><strong>${__('compare_text_diff')}:</strong><div class="text-diff">${r.text_diff.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+                    }
+
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                resultDiv.className = 'result show';
+                resultDiv.innerHTML = html;
+
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'compare');
+            } else {
+                throw new Error(data.error || __('error_generic'));
+            }
+        } catch (error) {
+            uploadProgress.classList.remove('show');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = '<h3>' + __('error') + '</h3><p>' + error.message + '</p>';
+        } finally {
+            compareBtn.disabled = false;
+            compareBtn.classList.remove('loading');
+            compareBtn.textContent = __('compare_btn');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('numbering_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}🔢{% endblock %}
+{% block header_title %}{{ _('numbering_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('numbering_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #6d28d9 0%, #2563eb 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .position-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;
+    }
+    .position-btn {
+        padding: 14px 12px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        color: white; font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; transition: all 0.3s; text-align: center;
+    }
+    .position-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .position-btn.active { background: rgba(139,92,246,0.3); border-color: rgba(139,92,246,0.6); }
+    .position-btn .pos-icon { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+
+    .format-options {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;
+    }
+    .format-btn {
+        padding: 14px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        color: white; cursor: pointer; transition: all 0.3s; text-align: center;
+    }
+    .format-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .format-btn.active { background: rgba(139,92,246,0.3); border-color: rgba(139,92,246,0.6); }
+    .format-btn .format-example { font-size: 0.95rem; font-weight: 700; display: block; margin-bottom: 4px; }
+    .format-btn .format-desc { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+    .slider-value {
+        display: inline-block; background: rgba(139,92,246,0.3);
+        padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; margin-left: 10px;
+    }
+
+    .checkbox-option {
+        display: flex; align-items: center; gap: 10px; margin-top: 20px;
+        padding: 14px 18px; background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+        cursor: pointer; transition: all 0.3s;
+    }
+    .checkbox-option:hover { background: rgba(255,255,255,0.12); }
+    .checkbox-option input[type="checkbox"] { width: 20px; height: 20px; accent-color: #8b5cf6; cursor: pointer; }
+    .checkbox-option .checkbox-label { font-weight: 600; color: white; }
+    .checkbox-option .checkbox-desc { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    .file-selected-info {
+        margin-top: 15px; padding: 15px;
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px; display: none;
+    }
+    .file-selected-info .file-name { font-weight: 600; color: white; }
+    .file-selected-info .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+
+    @media (max-width: 768px) {
+        .format-options { grid-template-columns: 1fr; }
+        .form-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+        </svg>
+        <h3>{{ _('upload_file') }}</h3>
+        <p>{{ _('numbering_subtitle') }}</p>
+        <span class="file-limit">Maksimum: 100 MB</span>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="file-selected-info" id="fileSelectedInfo">
+        <div class="file-name" id="selectedFileName"></div>
+        <div class="file-size" id="selectedFileSize"></div>
+    </div>
+
+    <!-- Preview layout -->
+    <div class="preview-layout" id="previewLayout" style="display: none; margin-top: 25px;">
+        <div class="settings-panel">
+            <!-- Position -->
+            <div class="form-group">
+                <label>{{ _('numbering_position') }}</label>
+                <div class="position-grid">
+                    <button class="position-btn" data-pos="top-left" onclick="selectPosition('top-left')"><span class="pos-icon">&#8598;</span>Ust Sol</button>
+                    <button class="position-btn" data-pos="top-center" onclick="selectPosition('top-center')"><span class="pos-icon">&#8593;</span>Ust Orta</button>
+                    <button class="position-btn" data-pos="top-right" onclick="selectPosition('top-right')"><span class="pos-icon">&#8599;</span>Ust Sag</button>
+                    <button class="position-btn" data-pos="bottom-left" onclick="selectPosition('bottom-left')"><span class="pos-icon">&#8601;</span>Alt Sol</button>
+                    <button class="position-btn active" data-pos="bottom-center" onclick="selectPosition('bottom-center')"><span class="pos-icon">&#8595;</span>Alt Orta</button>
+                    <button class="position-btn" data-pos="bottom-right" onclick="selectPosition('bottom-right')"><span class="pos-icon">&#8600;</span>Alt Sag</button>
+                </div>
+            </div>
+
+            <!-- Format -->
+            <div class="form-group">
+                <label>{{ _('numbering_format') }}</label>
+                <div class="format-options">
+                    <button class="format-btn active" data-format="{n}" onclick="selectFormat('{n}')">
+                        <span class="format-example">1, 2, 3</span><span class="format-desc">Sadece numara</span>
+                    </button>
+                    <button class="format-btn" data-format="Sayfa {n}/{total}" onclick="selectFormat('Sayfa {n}/{total}')">
+                        <span class="format-example">Sayfa 1/10</span><span class="format-desc">Sayfa ile toplam</span>
+                    </button>
+                    <button class="format-btn" data-format="{n} / {total}" onclick="selectFormat('{n} / {total}')">
+                        <span class="format-example">1 / 10</span><span class="format-desc">Numara / Toplam</span>
+                    </button>
+                    <button class="format-btn" data-format="- {n} -" onclick="selectFormat('- {n} -')">
+                        <span class="format-example">- 1 -</span><span class="format-desc">Tireli format</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Options row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>{{ _('numbering_start') }}</label>
+                    <input type="number" id="startNumber" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>{{ _('numbering_font_size') }} <span class="slider-value" id="fontSizeValue">12</span></label>
+                    <input type="range" id="fontSize" min="8" max="24" value="12" style="margin-top: 8px; width: 100%;">
+                </div>
+            </div>
+
+            <!-- Skip first page -->
+            <label class="checkbox-option">
+                <input type="checkbox" id="skipFirst">
+                <div>
+                    <div class="checkbox-label">{{ _('numbering_skip_first') }}</div>
+                    <div class="checkbox-desc">Numaralandirma ikinci sayfadan baslar (kapak sayfasi icin)</div>
+                </div>
+            </label>
+
+            <button class="btn-primary" id="numberBtn" disabled>{{ _('numbering_btn') }}</button>
+        </div>
+
+        <div class="preview-panel">
+            <div class="preview-panel-title">Canli Onizleme</div>
+            <div class="preview-container" id="previewContainer">
+                <div class="preview-placeholder">
+                    <p>Onizleme yukleniyor...</p>
+                </div>
+            </div>
+            <div class="preview-nav" id="previewNav" style="display: none;">
+                <button id="prevPageBtn" disabled>&laquo; Onceki</button>
+                <span id="pageInfo">Sayfa 1/1</span>
+                <button id="nextPageBtn">Sonraki &raquo;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFile = null;
+    let currentPosition = 'bottom-center';
+    let currentFormat = '{n}';
+    let totalPages = 1;
+    let currentPreviewPage = 0;
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    // Drop zone setup
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf',
+        multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+
+        selectedFile = file;
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('selectedFileSize').textContent = formatSize(file.size);
+        document.getElementById('fileSelectedInfo').style.display = 'block';
+        document.getElementById('numberBtn').disabled = false;
+        document.getElementById('result').classList.remove('show');
+
+        // Onizleme layout'unu goster
+        document.getElementById('previewLayout').style.display = 'grid';
+
+        // Onizleme yukle
+        loadPreview(selectedFile, previewContainer, {
+            width: 400,
+            onLoad: (data) => {
+                totalPages = data.total_pages;
+                updateNumberOverlay();
+                if (totalPages > 1) {
+                    document.getElementById('previewNav').style.display = 'flex';
+                    document.getElementById('pageInfo').textContent = `Sayfa 1/${totalPages}`;
+                }
+            }
+        });
+
+        steps.setStep(1);
+    }
+
+    function selectPosition(pos) {
+        currentPosition = pos;
+        document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.position-btn[data-pos="${pos}"]`).classList.add('active');
+        updateNumberOverlay();
+    }
+
+    function selectFormat(fmt) {
+        currentFormat = fmt;
+        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.format-btn[data-format="${fmt}"]`).classList.add('active');
+        updateNumberOverlay();
+    }
+
+    function updateNumberOverlay() {
+        const skipFirst = document.getElementById('skipFirst').checked;
+        const startNum = parseInt(document.getElementById('startNumber').value) || 1;
+        const fontSize = parseInt(document.getElementById('fontSize').value) || 12;
+
+        let displayNum = startNum + currentPreviewPage;
+        if (skipFirst) {
+            if (currentPreviewPage === 0) {
+                // Ilk sayfada numara gosterme
+                const overlay = previewContainer.querySelector('.preview-overlay');
+                if (overlay) overlay.innerHTML = '';
+                return;
+            }
+            displayNum = startNum + currentPreviewPage - 1;
+        }
+
+        updateNumberPreview(previewContainer, {
+            position: currentPosition,
+            format: currentFormat,
+            fontSize: fontSize,
+            number: displayNum,
+            total: totalPages
+        });
+    }
+
+    // Canli guncelleme dinleyicileri
+    document.getElementById('fontSize').addEventListener('input', (e) => {
+        document.getElementById('fontSizeValue').textContent = e.target.value;
+        updateNumberOverlay();
+    });
+    document.getElementById('startNumber').addEventListener('input', updateNumberOverlay);
+    document.getElementById('skipFirst').addEventListener('change', updateNumberOverlay);
+
+    // Sayfa gezinme
+    document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (currentPreviewPage > 0) {
+            currentPreviewPage--;
+            navigatePreview();
+        }
+    });
+    document.getElementById('nextPageBtn').addEventListener('click', () => {
+        if (currentPreviewPage < totalPages - 1) {
+            currentPreviewPage++;
+            navigatePreview();
+        }
+    });
+
+    function navigatePreview() {
+        document.getElementById('prevPageBtn').disabled = currentPreviewPage === 0;
+        document.getElementById('nextPageBtn').disabled = currentPreviewPage >= totalPages - 1;
+        document.getElementById('pageInfo').textContent = `Sayfa ${currentPreviewPage + 1}/${totalPages}`;
+
+        loadPreview(selectedFile, previewContainer, {
+            page: currentPreviewPage,
+            width: 400,
+            onLoad: () => updateNumberOverlay()
+        });
+    }
+
+    // Number pages
+    document.getElementById('numberBtn').addEventListener('click', async () => {
+        if (!selectedFile) {
+            showToast(__('error'), 'error');
+            return;
+        }
+
+        const btn = document.getElementById('numberBtn');
+        btn.disabled = true;
+        btn.classList.add('loading');
+        document.getElementById('result').classList.remove('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('position', currentPosition);
+        formData.append('format', currentFormat);
+        formData.append('start_page', document.getElementById('startNumber').value);
+        formData.append('font_size', document.getElementById('fontSize').value);
+        formData.append('skip_first', document.getElementById('skipFirst').checked);
+
+        try {
+            const data = await uploadWithProgress('/api/numbering', formData, {
+                onProgress: (percent) => {
+                    btn.textContent = `${__('numbering_btn_loading')} %${percent}`;
+                }
+            });
+
+            const result = document.getElementById('result');
+            if (data.success) {
+                steps.setStep(2);
+                result.className = 'result show';
+                let statsHtml = '';
+                if (data.page_count) {
+                    statsHtml = `<div class="stats-grid" style="max-width: 300px; margin: 15px auto;">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.page_count}</div>
+                            <div class="stat-label">Toplam Sayfa</div>
+                        </div>
+                    </div>`;
+                }
+                result.innerHTML = `<h3>${__('numbering_complete')}</h3>
+                    ${statsHtml}
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'numbering');
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.textContent = __('numbering_btn');
+        }
+    });
+</script>
+{% endblock %}

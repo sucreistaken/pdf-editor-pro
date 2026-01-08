@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('html_to_pdf_title') }} - {{ site_name }}{% endif %}{% endblock %}
+{% block header_icon %}📝{% endblock %}
+{% block header_title %}{{ _('html_to_pdf_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('html_to_pdf_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #0369a1 0%, #155e75 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+    }
+
+    .form-group textarea {
+        min-height: 220px;
+        resize: vertical;
+        font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+
+    .hint {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('html_to_pdf_source') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="tabs">
+        <button class="tab-btn active" id="tabHtml">📄 {{ _('tab_html') }}</button>
+        <button class="tab-btn" id="tabUrl">🌐 {{ _('tab_url') }}</button>
+    </div>
+
+    <!-- Tab 1: HTML Kodu -->
+    <div class="tab-content active" id="htmlPanel">
+        <div class="form-group">
+            <label>{{ _('html_to_pdf_html_code') }}</label>
+            <textarea id="htmlContent" placeholder="<!DOCTYPE html>
+<html>
+<head>
+    <title>Ornek Sayfa</title>
+</head>
+<body>
+    <h1>Merhaba Dunya!</h1>
+    <p>Bu bir ornek PDF icerigidir.</p>
+</body>
+</html>"></textarea>
+            <p class="hint">Tam HTML belgesi veya sadece icerik yazabilirsiniz.</p>
+        </div>
+
+        <div class="form-group">
+            <label>{{ _('html_to_pdf_output_name') }}</label>
+            <input type="text" id="htmlCustomName" placeholder="dosya_adi">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_page_size') }}</label>
+                <select id="htmlPageSize">
+                    <option value="A4">A4</option>
+                    <option value="Letter">Letter</option>
+                    <option value="A3">A3</option>
+                    <option value="A5">A5</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_orientation') }}</label>
+                <select id="htmlOrientation">
+                    <option value="portrait">{{ _('html_to_pdf_portrait') }}</option>
+                    <option value="landscape">{{ _('html_to_pdf_landscape') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_margin') }}</label>
+                <select id="htmlMargin">
+                    <option value="5">5mm</option>
+                    <option value="10" selected>10mm</option>
+                    <option value="15">15mm</option>
+                    <option value="20">20mm</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="htmlConvertBtn">{{ _('html_to_pdf_btn') }}</button>
+    </div>
+
+    <!-- Tab 2: URL'den -->
+    <div class="tab-content" id="urlPanel">
+        <div class="form-group">
+            <label>{{ _('html_to_pdf_url') }}</label>
+            <input type="text" id="urlInput" placeholder="https://example.com">
+            <p class="hint">Sayfa tamamen yuklendikten sonra PDF olusturulur.</p>
+        </div>
+
+        <div class="form-group">
+            <label>{{ _('html_to_pdf_output_name') }}</label>
+            <input type="text" id="urlCustomName" placeholder="dosya_adi">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_page_size') }}</label>
+                <select id="urlPageSize">
+                    <option value="A4">A4</option>
+                    <option value="Letter">Letter</option>
+                    <option value="A3">A3</option>
+                    <option value="A5">A5</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_orientation') }}</label>
+                <select id="urlOrientation">
+                    <option value="portrait">{{ _('html_to_pdf_portrait') }}</option>
+                    <option value="landscape">{{ _('html_to_pdf_landscape') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ _('html_to_pdf_margin') }}</label>
+                <select id="urlMargin">
+                    <option value="5">5mm</option>
+                    <option value="10" selected>10mm</option>
+                    <option value="15">15mm</option>
+                    <option value="20">20mm</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="urlConvertBtn">{{ _('html_to_pdf_btn') }}</button>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}<div id="relatedToolsContainer"></div>{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+
+    // Tab setup
+    const tabBtns = [document.getElementById('tabHtml'), document.getElementById('tabUrl')];
+    const tabContents = [document.getElementById('htmlPanel'), document.getElementById('urlPanel')];
+    setupTabs(tabBtns, tabContents);
+
+    // Set step 1 when user starts typing content
+    document.getElementById('htmlContent').addEventListener('input', function() {
+        if (this.value.trim().length > 0) steps.setStep(1);
+    });
+    document.getElementById('urlInput').addEventListener('input', function() {
+        if (this.value.trim().length > 0) steps.setStep(1);
+    });
+
+    // HTML tab convert
+    document.getElementById('htmlConvertBtn').addEventListener('click', async () => {
+        const htmlContent = document.getElementById('htmlContent').value.trim();
+        if (!htmlContent) {
+            showToast(__('error'), 'error');
+            return;
+        }
+
+        const btn = document.getElementById('htmlConvertBtn');
+        btn.disabled = true;
+        btn.textContent = __('html_to_pdf_btn_loading');
+        document.getElementById('result').classList.remove('show');
+
+        const formData = new FormData();
+        formData.append('source_type', 'html');
+        formData.append('html_content', htmlContent);
+        formData.append('custom_name', document.getElementById('htmlCustomName').value || 'converted');
+        formData.append('page_size', document.getElementById('htmlPageSize').value);
+        formData.append('orientation', document.getElementById('htmlOrientation').value);
+        formData.append('margin', document.getElementById('htmlMargin').value);
+
+        try {
+            const response = await fetch('/api/html-to-pdf', { method: 'POST', body: formData, headers: { 'X-CSRFToken': getCSRFToken() } });
+            const data = await response.json();
+            const result = document.getElementById('result');
+            if (data.success) {
+                result.className = 'result show';
+                result.innerHTML = `<h3>${__('html_to_pdf_complete')}</h3>
+                    <p>Dosya boyutu: ${data.file_size}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'html-to-pdf');
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = __('html_to_pdf_btn');
+        }
+    });
+
+    // URL tab convert
+    document.getElementById('urlConvertBtn').addEventListener('click', async () => {
+        const urlInput = document.getElementById('urlInput').value.trim();
+        if (!urlInput) {
+            showToast(__('error'), 'error');
+            return;
+        }
+
+        const btn = document.getElementById('urlConvertBtn');
+        btn.disabled = true;
+        btn.textContent = __('html_to_pdf_btn_loading');
+        document.getElementById('result').classList.remove('show');
+
+        const formData = new FormData();
+        formData.append('source_type', 'url');
+        formData.append('url', urlInput);
+        formData.append('custom_name', document.getElementById('urlCustomName').value || 'converted');
+        formData.append('page_size', document.getElementById('urlPageSize').value);
+        formData.append('orientation', document.getElementById('urlOrientation').value);
+        formData.append('margin', document.getElementById('urlMargin').value);
+
+        try {
+            const response = await fetch('/api/html-to-pdf', { method: 'POST', body: formData, headers: { 'X-CSRFToken': getCSRFToken() } });
+            const data = await response.json();
+            const result = document.getElementById('result');
+            if (data.success) {
+                result.className = 'result show';
+                result.innerHTML = `<h3>${__('html_to_pdf_complete')}</h3>
+                    <p>Dosya boyutu: ${data.file_size}</p>
+                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'html-to-pdf');
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            const result = document.getElementById('result');
+            result.className = 'result error show';
+            result.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = __('html_to_pdf_btn');
+        }
+    });
+</script>
+{% endblock %}
