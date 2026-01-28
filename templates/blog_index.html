@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('blog_title') }} - {{ site_name }}{% endblock %}
+{% block description %}{{ _('blog_title') }} - {{ site_name }}{% endblock %}
+
+{% block header_icon %}&#128221;{% endblock %}
+{% block header_title %}{{ _('blog_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('blog_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .blog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-top: 10px;
+    }
+
+    .blog-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 28px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        animation: fadeInUp 0.5s ease-out backwards;
+    }
+
+    .blog-card:nth-child(1) { animation-delay: 0.1s; }
+    .blog-card:nth-child(2) { animation-delay: 0.15s; }
+    .blog-card:nth-child(3) { animation-delay: 0.2s; }
+    .blog-card:nth-child(4) { animation-delay: 0.25s; }
+    .blog-card:nth-child(5) { animation-delay: 0.3s; }
+
+    .blog-card:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-6px);
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .blog-card-date {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 12px;
+        font-weight: 500;
+    }
+
+    .blog-card-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 10px;
+        line-height: 1.4;
+        letter-spacing: -0.01em;
+    }
+
+    .blog-card-desc {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1.6;
+        flex: 1;
+        margin-bottom: 16px;
+    }
+
+    .blog-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .blog-card-tool {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .blog-card-read {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        transition: color 0.3s;
+    }
+
+    .blog-card:hover .blog-card-read {
+        color: white;
+    }
+
+    .blog-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .blog-empty-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .blog-keywords {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .blog-keyword {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    @media (max-width: 600px) {
+        .blog-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    {% if posts and posts|length > 0 %}
+    <div class="blog-grid">
+        {% for post in posts %}
+        <a href="/{{ lang }}/blog/{{ post.slug }}" class="blog-card">
+            <div class="blog-card-date">{{ _('blog_published') }}: {{ post.date }}</div>
+            <div class="blog-card-title">{{ post.title }}</div>
+            <div class="blog-card-desc">{{ post.description }}</div>
+            {% if post.keywords %}
+            <div class="blog-keywords">
+                {% for kw in post.keywords.split(',')[:3] %}
+                <span class="blog-keyword">{{ kw.strip() }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="blog-card-footer">
+                {% if post.related_tool %}
+                <span class="blog-card-tool">{{ _('blog_related_tool') }}: {{ post.related_tool }}</span>
+                {% endif %}
+                <span class="blog-card-read">{{ _('blog_read_more') }} &rarr;</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="blog-empty">
+        <div class="blog-empty-icon">&#128221;</div>
+        <p>{{ _('blog_no_posts') }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

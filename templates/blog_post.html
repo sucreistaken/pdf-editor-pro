@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} - {{ site_name }}{% endblock %}
+{% block description %}{{ post.description }}{% endblock %}
+
+{% block header_icon %}&#128221;{% endblock %}
+{% block header_title %}{{ post.title }}{% endblock %}
+{% block header_subtitle %}{{ post.description }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .blog-meta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .blog-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    .blog-meta-item .meta-icon {
+        font-size: 1rem;
+    }
+
+    .blog-tool-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .blog-tool-badge:hover {
+        background: rgba(139, 92, 246, 0.25);
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .blog-content {
+        line-height: 1.8;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .blog-content h1 {
+        display: none;
+    }
+
+    .blog-content h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-top: 32px;
+        margin-bottom: 14px;
+        color: white;
+        letter-spacing: -0.01em;
+    }
+
+    .blog-content h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-top: 24px;
+        margin-bottom: 10px;
+        color: white;
+    }
+
+    .blog-content p {
+        margin-bottom: 16px;
+    }
+
+    .blog-content a {
+        color: #a78bfa;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(167, 139, 250, 0.3);
+        transition: all 0.3s;
+    }
+
+    .blog-content a:hover {
+        color: #c4b5fd;
+        border-bottom-color: rgba(196, 181, 253, 0.6);
+    }
+
+    .blog-content ul, .blog-content ol {
+        margin: 16px 0;
+        padding-left: 24px;
+    }
+
+    .blog-content li {
+        margin-bottom: 8px;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .blog-content strong {
+        color: white;
+        font-weight: 700;
+    }
+
+    .blog-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 0.9rem;
+    }
+
+    .blog-content table th,
+    .blog-content table td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .blog-content table th {
+        background: rgba(255, 255, 255, 0.06);
+        font-weight: 700;
+        color: white;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .blog-content table td {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .blog-content table tr:hover td {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .blog-content code {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #c4b5fd;
+    }
+
+    .blog-content blockquote {
+        border-left: 3px solid rgba(139, 92, 246, 0.5);
+        padding: 12px 20px;
+        margin: 20px 0;
+        background: rgba(139, 92, 246, 0.06);
+        border-radius: 0 12px 12px 0;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .blog-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 30px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+
+    .blog-back-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateX(-4px);
+    }
+
+    .blog-keywords-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .blog-kw-tag {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb_schema %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "{{ _('nav_home') }}",
+            "item": "{{ site_url }}/{{ lang }}/"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "{{ _('blog_title') }}",
+            "item": "{{ site_url }}/{{ lang }}/blog"
+        },
+        {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "{{ post.title }}",
+            "item": "{{ site_url }}/{{ lang }}/blog/{{ post.slug }}"
+        }
+    ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Schema.org Article markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "{{ post.title }}",
+        "description": "{{ post.description }}",
+        "datePublished": "{{ post.date }}",
+        "dateModified": "{{ post.date }}",
+        "author": {
+            "@type": "Organization",
+            "name": "{{ site_name }}"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "{{ site_name }}",
+            "url": "{{ site_url }}",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "{{ site_url }}/static/og-image.png",
+                "width": 1200,
+                "height": 630
+            }
+        },
+        "image": {
+            "@type": "ImageObject",
+            "url": "{{ site_url }}/static/og-image.png",
+            "width": 1200,
+            "height": 630
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "{{ site_url }}/{{ lang }}/blog/{{ post.slug }}"
+        },
+        "wordCount": {{ post.word_count|default(0) }}{% if post.keywords %},
+        "keywords": "{{ post.keywords }}"{% endif %}
+    }
+    </script>
+
+    <!-- Meta bilgiler -->
+    <div class="blog-meta">
+        <div class="blog-meta-item">
+            <span class="meta-icon">&#128197;</span>
+            <span>{{ _('blog_published') }}: {{ post.date }}</span>
+        </div>
+        {% if post.reading_time %}
+        <div class="blog-meta-item">
+            <span class="meta-icon">&#128337;</span>
+            <span>{{ post.reading_time }} {{ _('blog_min_read') }}</span>
+        </div>
+        {% endif %}
+        {% if post.related_tool %}
+        <a href="/{{ lang }}/{{ post.related_tool }}" class="blog-tool-badge">
+            &#128279; {{ _('blog_related_tool') }}: {{ post.related_tool }}
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Icerik -->
+    <div class="blog-content">
+        {{ post.content|safe }}
+    </div>
+
+    <!-- Anahtar kelimeler -->
+    {% if post.keywords %}
+    <div class="blog-keywords-footer">
+        {% for kw in post.keywords.split(',') %}
+        <span class="blog-kw-tag">{{ kw.strip() }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Geri donme linki -->
+    <a href="/{{ lang }}/blog" class="blog-back-link">
+        <span>&larr;</span>
+        <span>{{ _('blog_back') }}</span>
+    </a>
+</div>
+{% endblock %}
