@@ -354,7 +354,7 @@ def api_preview():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Preview error: {e}", exc_info=True)
-        return api_error('Onizleme olusturulamadi')
+        return api_error('Önizleme oluşturulamadı')
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -710,7 +710,7 @@ def upload_files():
     return jsonify({
         'success': True,
         'job_id': job_id,
-        'message': 'Dosyalar yuklendi, islem baslatiliyor...'
+        'message': 'Dosyalar yüklendi, işlem başlatılıyor...'
     })
 
 @app.route('/process/<job_id>')
@@ -745,7 +745,7 @@ def process_pdf(job_id):
                 yield f"data: {json.dumps({'error': 'Logo dosyasi okunamadi!'})}\n\n"
                 return
 
-            yield f"data: {json.dumps({'log': 'SIFT algoritmasi baslatiliyor...', 'progress': 20})}\n\n"
+            yield f"data: {json.dumps({'log': 'SIFT algoritması başlatılıyor...', 'progress': 20})}\n\n"
             sift = cv2.SIFT_create()
             kp1, des1 = sift.detectAndCompute(logo_img, None)
 
@@ -826,7 +826,7 @@ def process_pdf(job_id):
 
                 cleaned_pages_bytes.append(cv2.imencode('.jpg', result_img)[1].tobytes())
 
-            yield f"data: {json.dumps({'log': 'Yeni PDF olusturuluyor...', 'progress': 95})}\n\n"
+            yield f"data: {json.dumps({'log': 'Yeni PDF oluşturuluyor...', 'progress': 95})}\n\n"
 
             with open(output_path, "wb") as f:
                 f.write(img2pdf.convert(cleaned_pages_bytes))
@@ -834,10 +834,10 @@ def process_pdf(job_id):
             os.remove(pdf_path)
             os.remove(logo_path)
 
-            yield f"data: {json.dumps({'log': 'Islem tamamlandi!', 'progress': 100, 'complete': True, 'download_id': job['output_filename'], 'download_name': job['custom_name']})}\n\n"
+            yield f"data: {json.dumps({'log': 'İşlem tamamlandı!', 'progress': 100, 'complete': True, 'download_id': job['output_filename'], 'download_name': job['custom_name']})}\n\n"
 
         except Exception as e:
-            yield f"data: {json.dumps({'error': f'Islem hatasi: {str(e)}'})}\n\n"
+            yield f"data: {json.dumps({'error': f'İşlem hatası: {str(e)}'})}\n\n"
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
             if os.path.exists(logo_path):
@@ -1023,7 +1023,7 @@ def api_encrypt():
             filename='sifreli.pdf'
         )
     else:
-        return api_error(result.get('error', 'Sifreleme hatasi'))
+        return api_error(result.get('error', 'Şifreleme hatası'))
 
 @app.route('/api/decrypt', methods=['POST'])
 @rate_limit('encrypt')
@@ -1056,7 +1056,7 @@ def api_decrypt():
             filename='sifresiz.pdf'
         )
     else:
-        return api_error(result.get('error', 'Sifre cozme hatasi'))
+        return api_error(result.get('error', 'Şifre çözme hatası'))
 
 # ==================== IMAGE TO PDF API ====================
 @app.route('/api/img-to-pdf', methods=['POST'])
@@ -1528,7 +1528,7 @@ def api_pdf_to_image():
                 download_url=f'/download/{zip_filename}?name=pdf_images.zip'
             )
         else:
-            return api_error(result.get('error', 'Donusturme hatasi'))
+            return api_error(result.get('error', 'Dönüştürme hatası'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
@@ -1539,7 +1539,7 @@ def api_html_to_pdf():
     from tools.html_to_pdf import html_to_pdf_from_string, html_to_pdf_from_url
 
     source_type = request.form.get('source_type', 'html')
-    custom_name = request.form.get('custom_name', 'donusturulmus').strip() or 'donusturulmus'
+    custom_name = request.form.get('custom_name', 'dönüştürülmüş').strip() or 'dönüştürülmüş'
     page_size = request.form.get('page_size', 'A4')
     margin = request.form.get('margin', '10')
     orientation = request.form.get('orientation', 'portrait')
@@ -1581,7 +1581,7 @@ def api_html_to_pdf():
             return jsonify(result), 400
     except Exception as e:
         logger.error(f"HTML to PDF error: {e}", exc_info=True)
-        return api_error('HTML donusturme hatasi')
+        return api_error('HTML dönüştürme hatası')
 
 # ==================== PDF METADATA API ====================
 @app.route('/api/metadata', methods=['POST'])
@@ -1745,7 +1745,7 @@ def api_crop():
                 page_count=result.get('page_count', 0)
             )
         else:
-            return api_error(result.get('error', 'Kirpma hatasi'))
+            return api_error(result.get('error', 'Kırpma hatası'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
@@ -1807,7 +1807,7 @@ def api_pdf_to_excel():
                 total_rows=result.get('total_rows', 0)
             )
         else:
-            return api_error(result.get('error', 'Donusturme hatasi'))
+            return api_error(result.get('error', 'Dönüştürme hatası'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
@@ -1898,7 +1898,7 @@ def api_pdf_to_word():
                 page_count=result.get('page_count', 0)
             )
         else:
-            return api_error(result.get('error', 'Donusturme hatasi'))
+            return api_error(result.get('error', 'Dönüştürme hatası'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
@@ -1935,7 +1935,7 @@ def api_pdf_to_pdfa():
                 page_count=result.get('page_count', 0)
             )
         else:
-            return api_error(result.get('error', 'Donusturme hatasi'))
+            return api_error(result.get('error', 'Dönüştürme hatası'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
@@ -1960,9 +1960,9 @@ def too_large(e):
 
 @app.errorhandler(500)
 def server_error(e):
-    logger.error(f"500 hatasi: {e}")
+    logger.error(f"500 hatası: {e}")
     if request.path.startswith('/api/'):
-        return api_error('Sunucu hatasi', 500)
+        return api_error('Sunucu hatası', 500)
     lang = getattr(g, 'lang', DEFAULT_LANGUAGE)
     _ = get_translator(lang)
     return render_template('error.html', code=500, message=_('error_500')), 500

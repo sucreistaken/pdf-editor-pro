@@ -158,7 +158,7 @@
         </svg>
         <h3>{{ _('upload_file') }}</h3>
         <p>{{ _('metadata_subtitle') }}</p>
-        <span class="file-limit">Maksimum: 100 MB</span>
+        <span class="file-limit">Maksimum: 500 MB</span>
         <input type="file" id="fileInput" accept=".pdf">
     </div>
 
@@ -182,7 +182,7 @@
         <div class="section-title">Dosya Bilgileri</div>
         <div class="info-grid">
             <div class="info-item">
-                <div class="info-label">Sayfa Sayisi</div>
+                <div class="info-label">Sayfa Sayısı</div>
                 <div class="info-value" id="infoPageCount">-</div>
             </div>
             <div class="info-item">
@@ -190,25 +190,25 @@
                 <div class="info-value" id="infoFileSize">-</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Olusturma Tarihi</div>
+                <div class="info-label">Oluşturma Tarihi</div>
                 <div class="info-value" id="infoCreationDate">-</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Degisiklik Tarihi</div>
+                <div class="info-label">Değişiklik Tarihi</div>
                 <div class="info-value" id="infoModDate">-</div>
             </div>
         </div>
 
         <!-- Editable fields -->
-        <div class="section-title">Metadata Alanlari</div>
+        <div class="section-title">Metadata Alanları</div>
         <div class="form-row">
             <div class="form-group">
-                <label>Baslik</label>
-                <input type="text" id="metaTitle" placeholder="PDF basligi">
+                <label>Başlık</label>
+                <input type="text" id="metaTitle" placeholder="PDF başlığı">
             </div>
             <div class="form-group">
                 <label>Yazar</label>
-                <input type="text" id="metaAuthor" placeholder="Yazar adi">
+                <input type="text" id="metaAuthor" placeholder="Yazar adı">
             </div>
         </div>
         <div class="form-row">
@@ -223,12 +223,12 @@
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Olusturan</label>
-                <input type="text" id="metaCreator" placeholder="Olusturan uygulama">
+                <label>Oluşturan</label>
+                <input type="text" id="metaCreator" placeholder="Oluşturan uygulama">
             </div>
             <div class="form-group">
-                <label>Uretici</label>
-                <input type="text" id="metaProducer" placeholder="PDF ureticisi">
+                <label>Üretici</label>
+                <input type="text" id="metaProducer" placeholder="PDF üreticisi">
             </div>
         </div>
 
@@ -299,7 +299,7 @@
                 document.getElementById('metadataForm').classList.add('show');
                 steps.setStep(1);
             } else {
-                throw new Error(data.error || 'Metadata okunamadi');
+                throw new Error(data.error || 'Metadata okunamadı');
             }
         } catch (error) {
             progressEl.classList.remove('show');
@@ -361,7 +361,7 @@
             if (data.success) {
                 result.className = 'result show';
                 result.innerHTML = `<h3>${__('metadata_complete')}</h3>
-                    <p>Metadata bilgileri basariyla kaydedildi.</p>
+                    <p>Metadata bilgileri başarıyla kaydedildi.</p>
                     <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
                 steps.setStep(2);
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'metadata');
@@ -410,7 +410,7 @@
             if (data.success) {
                 result.className = 'result show';
                 result.innerHTML = `<h3>${__('metadata_complete')}</h3>
-                    <p>Tum metadata bilgileri basariyla silindi.</p>
+                    <p>Tüm metadata bilgileri başarıyla silindi.</p>
                     <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
                 steps.setStep(2);
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'metadata');

@@ -101,7 +101,7 @@ def repair_pdf(input_path, output_path):
         logger.error(f"repair_pdf error: {e}", exc_info=True)
         return {
             'success': False,
-            'error': 'Onarim hatasi',
+            'error': 'Onarım hatası',
             'issues_found': issues_found
         }
 
@@ -173,7 +173,7 @@ def try_deep_recovery(input_path, output_path):
         logger.error(f"try_deep_recovery error: {e}", exc_info=True)
         return {
             'success': False,
-            'error': 'Derin kurtarma hatasi',
+            'error': 'Derin kurtarma hatası',
             'issues_found': issues_found
         }
 
@@ -238,7 +238,7 @@ def analyze_pdf(pdf_path):
         logger.error(f"analyze_pdf error: {e}", exc_info=True)
         return {
             'success': False,
-            'error': 'Islem basarisiz'
+            'error': 'İşlem başarısız'
         }
 
     finally:

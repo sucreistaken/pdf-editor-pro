@@ -71,7 +71,7 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                     images_compressed += 1
 
             except Exception as e:
-                logger.warning(f"Gorsel sikistirma hatasi (xref={xref}): {e}")
+                logger.warning(f"Görsel sıkıştırma hatası (xref={xref}): {e}")
                 continue
 
     doc.save(output_path, garbage=4, deflate=True, clean=True)
@@ -93,7 +93,7 @@ def _phase2_stream_optimize(input_path, output_path):
         pdf.close()
         return True
     except Exception as e:
-        logger.warning(f"pikepdf stream optimizasyonu basarisiz: {e}")
+        logger.warning(f"pikepdf stream optimizasyonu başarısız: {e}")
         return False
 
 
@@ -131,7 +131,7 @@ def compress_pdf(input_path, output_path, quality='medium'):
                 if phase2_size >= phase1_size:
                     shutil.copy2(phase1_path, output_path)
             else:
-                # pikepdf basarisiz: Faz 1 sonucunu kullan
+                # pikepdf başarısız: Faz 1 sonucunu kullan
                 shutil.copy2(phase1_path, output_path)
         finally:
             # Gecici Faz 1 dosyasini temizle
@@ -157,4 +157,4 @@ def compress_pdf(input_path, output_path, quality='medium'):
 
     except Exception as e:
         logger.error(f"compress_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

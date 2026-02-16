@@ -35,7 +35,7 @@ def get_metadata(input_path):
 
     except Exception as e:
         logger.error(f"get_metadata error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()
@@ -67,7 +67,7 @@ def update_metadata(input_path, output_path, new_metadata):
 
     except Exception as e:
         logger.error(f"update_metadata error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()
@@ -99,7 +99,7 @@ def clear_metadata(input_path, output_path):
 
     except Exception as e:
         logger.error(f"clear_metadata error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()

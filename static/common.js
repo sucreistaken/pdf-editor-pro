@@ -44,7 +44,7 @@ function setupDropZone(dropZoneEl, fileInputEl, options = {}) {
     const accept = options.accept || '.pdf';
     const multiple = options.multiple || false;
     const onFiles = options.onFiles || (() => {});
-    const maxSize = options.maxSize || 100 * 1024 * 1024; // 100MB
+    const maxSize = options.maxSize || 500 * 1024 * 1024; // 500MB
 
     dropZoneEl.addEventListener('click', () => fileInputEl.click());
 
@@ -97,8 +97,8 @@ function validatePDF(file) {
         showToast('Lütfen bir PDF dosyası seçin', 'error');
         return false;
     }
-    if (file.size > 100 * 1024 * 1024) {
-        showToast('Dosya çok büyük! Maksimum: 100 MB', 'error');
+    if (file.size > 500 * 1024 * 1024) {
+        showToast('Dosya çok büyük! Maksimum: 500 MB', 'error');
         return false;
     }
     return true;
@@ -112,8 +112,8 @@ function validateImage(file) {
         showToast('Geçersiz görsel formatı', 'error');
         return false;
     }
-    if (file.size > 100 * 1024 * 1024) {
-        showToast('Dosya çok büyük! Maksimum: 100 MB', 'error');
+    if (file.size > 500 * 1024 * 1024) {
+        showToast('Dosya çok büyük! Maksimum: 500 MB', 'error');
         return false;
     }
     return true;

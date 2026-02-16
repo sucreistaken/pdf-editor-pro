@@ -44,7 +44,7 @@ def html_to_pdf_from_string(html_content, output_path, options=None):
         }
     except Exception as e:
         logger.error(f"html_to_pdf_from_string error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def html_to_pdf_from_url(url, output_path, options=None):
@@ -84,7 +84,7 @@ def html_to_pdf_from_url(url, output_path, options=None):
         }
     except Exception as e:
         logger.error(f"html_to_pdf_from_url error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def _build_pdf_options(options):

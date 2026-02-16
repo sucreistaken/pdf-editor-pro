@@ -54,7 +54,7 @@ def get_pdf_thumbnails(pdf_path, max_width=150):
     
     except Exception as e:
         logger.error(f"get_pdf_thumbnails error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def reorder_pdf_pages(pdf_path, output_path, new_order):
@@ -93,7 +93,7 @@ def reorder_pdf_pages(pdf_path, output_path, new_order):
     
     except Exception as e:
         logger.error(f"reorder_pdf_pages error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def delete_pdf_pages(pdf_path, output_path, pages_to_delete):
@@ -138,4 +138,4 @@ def delete_pdf_pages(pdf_path, output_path, pages_to_delete):
     
     except Exception as e:
         logger.error(f"delete_pdf_pages error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

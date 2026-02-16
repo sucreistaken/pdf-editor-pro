@@ -45,7 +45,7 @@ def extract_text(input_path, output_path=None):
     
     except Exception as e:
         logger.error(f"extract_text error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def extract_text_by_page(input_path, page_number):
@@ -77,4 +77,4 @@ def extract_text_by_page(input_path, page_number):
     
     except Exception as e:
         logger.error(f"extract_text_by_page error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

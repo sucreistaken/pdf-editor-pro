@@ -81,7 +81,7 @@ def pdf_to_excel(input_path, output_path):
 
         return {
             'success': True,
-            'message': f'{total_tables} tablo, {total_rows} satir cikarildi',
+            'message': f'{total_tables} tablo, {total_rows} satır çıkarıldı',
             'tables_found': total_tables,
             'total_rows': total_rows,
             'page_count': len(wb.sheetnames)
@@ -89,4 +89,4 @@ def pdf_to_excel(input_path, output_path):
 
     except Exception as e:
         logger.error(f"pdf_to_excel error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

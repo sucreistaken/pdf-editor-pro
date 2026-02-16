@@ -59,7 +59,7 @@ def pdf_to_images(pdf_path, output_folder, format='png', dpi=200):
 
     except Exception as e:
         logger.error(f"pdf_to_images error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def pdf_to_images_zip(pdf_path, format='png', dpi=200):
@@ -106,4 +106,4 @@ def pdf_to_images_zip(pdf_path, format='png', dpi=200):
 
     except Exception as e:
         logger.error(f"pdf_to_images_zip error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz', 'page_count': 0}
+        return {'success': False, 'error': 'İşlem başarısız', 'page_count': 0}

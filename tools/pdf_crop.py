@@ -36,20 +36,20 @@ def crop_pdf(input_path, output_path, margins):
                 rect.y1 - bottom
             )
             if new_rect.width <= 0 or new_rect.height <= 0:
-                return {'success': False, 'error': 'Kenar bosluklar sayfa boyutundan buyuk!'}
+                return {'success': False, 'error': 'Kenar boşluklar sayfa boyutundan büyük!'}
             page.set_cropbox(new_rect)
 
         doc.save(output_path, garbage=4, deflate=True)
 
         return {
             'success': True,
-            'message': f'{len(doc)} sayfa kirpildi',
+            'message': f'{len(doc)} sayfa kırpıldı',
             'page_count': len(doc)
         }
 
     except Exception as e:
         logger.error(f"crop_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()
@@ -112,14 +112,14 @@ def auto_crop_pdf(input_path, output_path):
 
         return {
             'success': True,
-            'message': f'{cropped_count} sayfa otomatik kirpildi',
+            'message': f'{cropped_count} sayfa otomatik kırpıldı',
             'page_count': len(doc),
             'cropped_count': cropped_count
         }
 
     except Exception as e:
         logger.error(f"auto_crop_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()

@@ -34,4 +34,4 @@ def merge_pdfs(pdf_paths, output_path):
     
     except Exception as e:
         logger.error(f"merge_pdfs error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

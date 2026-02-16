@@ -26,13 +26,13 @@ def pdf_to_word(input_path, output_path):
 
         return {
             'success': True,
-            'message': f'PDF basariyla Word\'e donusturuldu',
+            'message': f'PDF başarıyla Word\'e dönüştürüldü',
             'page_count': page_count
         }
 
     except Exception as e:
         logger.error(f"pdf_to_word error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if cv:
             try:

@@ -46,7 +46,7 @@ if not _secret_key_env and FLASK_ENV == 'production':
     )
     sys.exit(1)
 SECRET_KEY = _secret_key_env or 'dev-only-insecure-key-' + secrets.token_hex(8)
-MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # 100MB
+MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 500 * 1024 * 1024))  # 500MB
 
 # Klasorler
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')

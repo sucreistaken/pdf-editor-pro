@@ -64,7 +64,7 @@ def extract_images(input_path, output_folder):
     
     except Exception as e:
         logger.error(f"extract_images error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def get_image_count(input_path):
@@ -84,4 +84,4 @@ def get_image_count(input_path):
     
     except Exception as e:
         logger.error(f"get_image_count error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

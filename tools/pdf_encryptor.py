@@ -51,7 +51,7 @@ def encrypt_pdf(input_path, output_path, password, owner_password=None, permissi
     
     except Exception as e:
         logger.error(f"encrypt_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def decrypt_pdf(input_path, output_path, password):
@@ -79,4 +79,4 @@ def decrypt_pdf(input_path, output_path, password):
         return {'success': False, 'error': 'Incorrect password'}
     except Exception as e:
         logger.error(f"decrypt_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

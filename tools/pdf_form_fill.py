@@ -58,7 +58,7 @@ def get_form_fields(input_path):
 
     except Exception as e:
         logger.error(f"get_form_fields error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()
@@ -116,7 +116,7 @@ def fill_form(input_path, output_path, field_data, flatten=True):
 
     except Exception as e:
         logger.error(f"fill_form error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc:
             doc.close()

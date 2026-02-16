@@ -92,4 +92,4 @@ def add_page_numbers(input_path, output_path, position='bottom-center',
 
     except Exception as e:
         logger.error(f"add_page_numbers error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

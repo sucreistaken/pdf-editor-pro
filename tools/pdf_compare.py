@@ -38,8 +38,8 @@ def compare_pdfs(path1, path2):
         if max_pages > MAX_COMPARE_PAGES:
             return {
                 'success': False,
-                'error': f'Karsilastirma en fazla {MAX_COMPARE_PAGES} sayfa destekler. '
-                         f'PDF dosyalariniz {max_pages} sayfa iceriyor.'
+                'error': f'Karşılaştırma en fazla {MAX_COMPARE_PAGES} sayfa destekler. '
+                         f'PDF dosyalarınız {max_pages} sayfa içeriyor.'
             }
 
         results = []
@@ -130,7 +130,7 @@ def compare_pdfs(path1, path2):
 
     except Exception as e:
         logger.error(f"compare_pdfs error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if doc1:
             doc1.close()

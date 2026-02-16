@@ -52,14 +52,14 @@ def convert_to_pdfa(input_path, output_path, version='2b'):
 
         return {
             'success': True,
-            'message': f'PDF/A-{part}{conformance} formatina donusturuldu',
+            'message': f'PDF/A-{part}{conformance} formatına dönüştürüldü',
             'version': f'PDF/A-{part}{conformance}',
             'page_count': len(pdf.pages)
         }
 
     except Exception as e:
         logger.error(f"convert_to_pdfa error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
     finally:
         if pdf:
             pdf.close()

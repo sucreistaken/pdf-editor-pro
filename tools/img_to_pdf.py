@@ -45,7 +45,7 @@ def images_to_pdf(image_paths, output_path, page_size=None):
     
     except Exception as e:
         logger.error(f"images_to_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def get_image_info(image_path):
@@ -69,4 +69,4 @@ def get_image_info(image_path):
             }
     except Exception as e:
         logger.error(f"get_image_info error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

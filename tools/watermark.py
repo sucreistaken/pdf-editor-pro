@@ -91,7 +91,7 @@ def add_text_watermark(input_path, output_path, text, position='center',
 
     except Exception as e:
         logger.error(f"add_text_watermark error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def add_image_watermark(input_path, output_path, image_path,
@@ -161,4 +161,4 @@ def add_image_watermark(input_path, output_path, image_path,
 
     except Exception as e:
         logger.error(f"add_image_watermark error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

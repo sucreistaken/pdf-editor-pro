@@ -69,7 +69,7 @@ def split_pdf_by_pages(input_path, output_folder, page_ranges=None):
 
     except Exception as e:
         logger.error(f"split_pdf_by_pages error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
 
 
 def extract_pages(input_path, output_path, page_numbers):
@@ -102,4 +102,4 @@ def extract_pages(input_path, output_path, page_numbers):
 
     except Exception as e:
         logger.error(f"extract_pages error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}

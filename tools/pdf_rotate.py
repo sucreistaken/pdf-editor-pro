@@ -47,4 +47,4 @@ def rotate_pdf(input_path, output_path, rotation, pages='all'):
     
     except Exception as e:
         logger.error(f"rotate_pdf error: {e}", exc_info=True)
-        return {'success': False, 'error': 'Islem basarisiz'}
+        return {'success': False, 'error': 'İşlem başarısız'}
