@@ -29,7 +29,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./static:/app/static:ro
-      - certbot_data:/etc/letsencrypt:ro
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - app
     networks:
@@ -39,7 +39,6 @@ volumes:
   uploads_data:
   outputs_data:
   logs_data:
-  certbot_data:
 
 networks:
   pdfedit-net:
