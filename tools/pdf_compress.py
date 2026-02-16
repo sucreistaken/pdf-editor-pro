@@ -15,8 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 def _phase1_image_compress(input_path, output_path, quality_settings):
-    """Faz 1: PyMuPDF ile gomulu gorsel sikistirma."""
-    max_dim = quality_settings['max_dim']
+    """Faz 1: PyMuPDF ile gomulu gorsel sikistirma.
+
+    ONEMLI: Gorsel boyutlari (Width/Height) ASLA degistirilmez.
+    Sadece JPEG kalitesi dusurulur. Boyut degistirmek sayfa transformation
+    matrix'ini bozar ve bos sayfalara neden olur.
+    """
     jpeg_quality = quality_settings['jpeg_quality']
 
     doc = fitz.open(input_path)
@@ -44,7 +48,6 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                 img_bytes = base_image["image"]
                 width = base_image["width"]
                 height = base_image["height"]
-                colorspace = base_image.get("colorspace", 0)
 
                 # Cok kucuk gorselleri atla (ikon, logo vs.)
                 if width < 100 and height < 100:
@@ -56,11 +59,12 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
 
                 pil_img = Image.open(io.BytesIO(img_bytes))
 
-                # RGBA/PA/LA (alfa kanalli) gorselleri atla
-                if pil_img.mode in ('RGBA', 'PA', 'LA'):
+                # Alfa kanalli gorselleri atla (JPEG desteklemez)
+                if pil_img.mode in ('RGBA', 'PA', 'LA', 'P'):
+                    # P mode palette'li olabilir, alfa icerip icermedigini bilemeyiz
                     continue
 
-                # CMYK gorselleri RGB'ye cevir
+                # Renk modu donusumu
                 if pil_img.mode == 'CMYK':
                     pil_img = pil_img.convert('RGB')
                     is_gray = False
@@ -72,26 +76,21 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                 else:
                     is_gray = False
 
-                # Boyut kucultme
-                if width > max_dim or height > max_dim:
-                    pil_img.thumbnail((max_dim, max_dim), Image.LANCZOS)
-
-                new_width, new_height = pil_img.size
-
+                # JPEG olarak yeniden sikistir (BOYUT DEGISTIRMEDEN)
                 buf = io.BytesIO()
                 pil_img.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
                 compressed_bytes = buf.getvalue()
 
-                # Sadece %5'ten fazla kuculduyse degistir
-                if len(compressed_bytes) < len(img_bytes) * 0.95:
+                # Sadece %10'dan fazla kuculduyse degistir (guvenli esik)
+                if len(compressed_bytes) < len(img_bytes) * 0.90:
                     doc.update_stream(xref, compressed_bytes)
                     doc.xref_set_key(xref, "Filter", "/DCTDecode")
                     doc.xref_set_key(xref, "DecodeParms", "null")
-                    doc.xref_set_key(xref, "ColorSpace", "/DeviceGray" if is_gray else "/DeviceRGB")
-                    doc.xref_set_key(xref, "Width", str(new_width))
-                    doc.xref_set_key(xref, "Height", str(new_height))
+                    doc.xref_set_key(xref, "ColorSpace",
+                                     "/DeviceGray" if is_gray else "/DeviceRGB")
                     doc.xref_set_key(xref, "BitsPerComponent", "8")
                     doc.xref_set_key(xref, "Length", str(len(compressed_bytes)))
+                    # Width ve Height DEGISTIRILMEZ - orijinal degerler korunur
                     images_compressed += 1
 
             except Exception as e:
