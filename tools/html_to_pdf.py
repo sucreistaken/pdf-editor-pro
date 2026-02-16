@@ -64,7 +64,9 @@ def html_to_pdf_from_url(url, output_path, options=None):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url, wait_until='networkidle', timeout=30000)
+            page.goto(url, wait_until='load', timeout=60000)
+            # Extra wait for dynamic content to render
+            page.wait_for_timeout(2000)
             page.pdf(path=output_path, **pdf_options)
             browser.close()
 
