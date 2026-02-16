@@ -26,9 +26,15 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
     for page in doc:
         for img_info in page.get_images(full=True):
             xref = img_info[0]
+            smask = img_info[1]  # SMask xref (transparency)
+
             if xref in xrefs_done:
                 continue
             xrefs_done.add(xref)
+
+            # Transparency/SMask iceren gorselleri atla - JPEG desteklemez
+            if smask and smask != 0:
+                continue
 
             try:
                 base_image = doc.extract_image(xref)
@@ -38,18 +44,35 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                 img_bytes = base_image["image"]
                 width = base_image["width"]
                 height = base_image["height"]
+                colorspace = base_image.get("colorspace", 0)
 
                 # Cok kucuk gorselleri atla (ikon, logo vs.)
                 if width < 100 and height < 100:
                     continue
 
-                pil_img = Image.open(io.BytesIO(img_bytes))
-                is_gray = pil_img.mode == 'L'
+                # Zaten JPEG ve kucukse atla
+                if base_image.get("ext") == "jpeg" and len(img_bytes) < 50000:
+                    continue
 
-                if pil_img.mode not in ('RGB', 'L'):
+                pil_img = Image.open(io.BytesIO(img_bytes))
+
+                # RGBA/PA/LA (alfa kanalli) gorselleri atla
+                if pil_img.mode in ('RGBA', 'PA', 'LA'):
+                    continue
+
+                # CMYK gorselleri RGB'ye cevir
+                if pil_img.mode == 'CMYK':
                     pil_img = pil_img.convert('RGB')
                     is_gray = False
+                elif pil_img.mode == 'L':
+                    is_gray = True
+                elif pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                    is_gray = False
+                else:
+                    is_gray = False
 
+                # Boyut kucultme
                 if width > max_dim or height > max_dim:
                     pil_img.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
@@ -59,7 +82,8 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                 pil_img.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
                 compressed_bytes = buf.getvalue()
 
-                if len(compressed_bytes) < len(img_bytes) * 0.98:
+                # Sadece %5'ten fazla kuculduyse degistir
+                if len(compressed_bytes) < len(img_bytes) * 0.95:
                     doc.update_stream(xref, compressed_bytes)
                     doc.xref_set_key(xref, "Filter", "/DCTDecode")
                     doc.xref_set_key(xref, "DecodeParms", "null")
@@ -131,7 +155,7 @@ def compress_pdf(input_path, output_path, quality='medium'):
                 if phase2_size >= phase1_size:
                     shutil.copy2(phase1_path, output_path)
             else:
-                # pikepdf başarısız: Faz 1 sonucunu kullan
+                # pikepdf basarisiz: Faz 1 sonucunu kullan
                 shutil.copy2(phase1_path, output_path)
         finally:
             # Gecici Faz 1 dosyasini temizle
