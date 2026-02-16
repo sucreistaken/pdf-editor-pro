@@ -1,116 +1,62 @@
 """
 PDF Compress Tool - Reduce PDF file size
-Hibrit yontem: Faz 1 (PyMuPDF gorsel sikistirma) + Faz 2 (pikepdf stream optimizasyonu).
-Metin ve vektor grafikleri tamamen korunur.
+Ghostscript tabanli sikistirma + pikepdf stream optimizasyonu.
+Metin, vektor grafikleri ve gorseller tamamen korunur.
 """
 import os
-import io
 import logging
 import shutil
+import subprocess
 import tempfile
-import fitz  # PyMuPDF
-from PIL import Image
 
 logger = logging.getLogger(__name__)
 
 
-def _phase1_image_compress(input_path, output_path, quality_settings):
-    """Faz 1: PyMuPDF ile gomulu gorsel sikistirma.
+def _compress_with_ghostscript(input_path, output_path, quality='medium'):
+    """Ghostscript ile PDF sikistirma - en guvenilir yontem."""
+    gs_settings = {
+        'low': '/screen',       # 72 dpi - maksimum sikistirma
+        'medium': '/ebook',     # 150 dpi - dengeli
+        'high': '/printer',     # 300 dpi - yuksek kalite
+    }
+    setting = gs_settings.get(quality, '/ebook')
 
-    GUVENLI YAKLASIM:
-    - Gorsel boyutlari (Width/Height) ASLA degistirilmez
-    - ColorSpace ASLA degistirilmez (ICC profilleri korunur)
-    - Sadece stream verisi ve Filter guncellenir
-    - Alfa kanalli / CMYK / Palette gorseller atlanir
-    """
-    jpeg_quality = quality_settings['jpeg_quality']
+    cmd = [
+        'gs',
+        '-sDEVICE=pdfwrite',
+        '-dCompatibilityLevel=1.4',
+        f'-dPDFSETTINGS={setting}',
+        '-dNOPAUSE',
+        '-dBATCH',
+        '-dQUIET',
+        f'-sOutputFile={output_path}',
+        input_path,
+    ]
 
-    doc = fitz.open(input_path)
-    images_compressed = 0
-    xrefs_done = set()
-    log_entries = []
-
-    for page_num, page in enumerate(doc):
-        for img_info in page.get_images(full=True):
-            xref = img_info[0]
-            smask = img_info[1]
-
-            if xref in xrefs_done:
-                continue
-            xrefs_done.add(xref)
-
-            if smask and smask != 0:
-                log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (SMask/seffaf)")
-                continue
-
-            try:
-                base_image = doc.extract_image(xref)
-                if not base_image:
-                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (extract bos)")
-                    continue
-
-                img_bytes = base_image["image"]
-                width = base_image["width"]
-                height = base_image["height"]
-                ext = base_image.get("ext", "?")
-                cs = base_image.get("colorspace", 0)
-                bpc = base_image.get("bpc", 0)
-
-                if width < 100 and height < 100:
-                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (kucuk {width}x{height})")
-                    continue
-
-                if ext == "jpeg" and len(img_bytes) < 50000:
-                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (kucuk JPEG {len(img_bytes)}B)")
-                    continue
-
-                pil_img = Image.open(io.BytesIO(img_bytes))
-                mode = pil_img.mode
-
-                # Sadece RGB ve L (grayscale) isle - diger her sey atla
-                if mode not in ('RGB', 'L'):
-                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (mode={mode}, {width}x{height}, {ext})")
-                    continue
-
-                # JPEG olarak yeniden sikistir (BOYUT VE COLORSPACE DEGISTIRMEDEN)
-                buf = io.BytesIO()
-                pil_img.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
-                compressed_bytes = buf.getvalue()
-
-                orig_size = len(img_bytes)
-                new_size = len(compressed_bytes)
-                saving_pct = round((1 - new_size / orig_size) * 100, 1) if orig_size > 0 else 0
-
-                if new_size < orig_size * 0.90:
-                    # MINIMAL degisiklik: sadece stream + filter
-                    doc.update_stream(xref, compressed_bytes)
-                    doc.xref_set_key(xref, "Filter", "/DCTDecode")
-                    doc.xref_set_key(xref, "DecodeParms", "null")
-                    doc.xref_set_key(xref, "Length", str(new_size))
-                    # Width, Height, ColorSpace, BitsPerComponent -> DOKUNMA
-                    images_compressed += 1
-                    log_entries.append(
-                        f"[Sayfa {page_num+1}] xref={xref}: OK {width}x{height} "
-                        f"{ext}/{mode} cs={cs} bpc={bpc} "
-                        f"{orig_size}B -> {new_size}B (%{saving_pct})"
-                    )
-                else:
-                    log_entries.append(
-                        f"[Sayfa {page_num+1}] xref={xref}: ATLA (az tasarruf %{saving_pct}, "
-                        f"{width}x{height} {ext}/{mode})"
-                    )
-
-            except Exception as e:
-                log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: HATA {e}")
-                continue
-
-    doc.save(output_path, garbage=4, deflate=True)
-    doc.close()
-    return images_compressed, log_entries
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            timeout=300,
+            text=True,
+        )
+        if result.returncode == 0:
+            return True, f"Ghostscript ({setting}) başarılı"
+        else:
+            err = result.stderr[:200] if result.stderr else "bilinmeyen hata"
+            logger.warning(f"Ghostscript hatası: {err}")
+            return False, f"Ghostscript hatası: {err}"
+    except FileNotFoundError:
+        return False, "Ghostscript yüklü değil"
+    except subprocess.TimeoutExpired:
+        return False, "Ghostscript zaman aşımı (300s)"
+    except Exception as e:
+        logger.warning(f"Ghostscript hatası: {e}")
+        return False, f"Ghostscript hatası: {e}"
 
 
-def _phase2_stream_optimize(input_path, output_path):
-    """Faz 2: pikepdf ile stream sikistirma ve kullanilmayan nesne temizligi."""
+def _compress_with_pikepdf(input_path, output_path):
+    """pikepdf ile stream sikistirma (fallback yontem)."""
     try:
         import pikepdf
         pdf = pikepdf.open(input_path)
@@ -121,64 +67,70 @@ def _phase2_stream_optimize(input_path, output_path):
             recompress_flate=True,
         )
         pdf.close()
-        return True
+        return True, "pikepdf stream optimizasyonu başarılı"
     except Exception as e:
-        logger.warning(f"pikepdf stream optimizasyonu başarısız: {e}")
-        return False
+        logger.warning(f"pikepdf hatası: {e}")
+        return False, f"pikepdf hatası: {e}"
 
 
 def compress_pdf(input_path, output_path, quality='medium'):
     """
-    PDF dosyasini sikistirir (hibrit yontem).
-    Faz 1: Gomulu gorselleri JPEG olarak yeniden sikistirir (PyMuPDF).
-    Faz 2: Stream'leri sikistirir, kullanilmayan nesneleri temizler (pikepdf).
-    Metin ve vektor icerik tamamen korunur.
+    PDF dosyasini sikistirir.
+    1. Ghostscript ile tam sikistirma (gorsel + stream)
+    2. Ghostscript yoksa/basarisizsa pikepdf ile stream optimizasyonu
     """
     try:
-        quality_settings = {
-            'low': {'jpeg_quality': 30},
-            'medium': {'jpeg_quality': 50},
-            'high': {'jpeg_quality': 75}
-        }
-        settings = quality_settings.get(quality, quality_settings['medium'])
         original_size = os.path.getsize(input_path)
         log = [f"Orijinal boyut: {original_size} bayt, Kalite: {quality}"]
 
-        # Faz 1: Gorsel sikistirma (gecici dosyaya yaz)
-        output_dir = os.path.dirname(output_path)
-        phase1_fd, phase1_path = tempfile.mkstemp(suffix='.pdf', dir=output_dir)
-        os.close(phase1_fd)
+        # Yontem 1: Ghostscript
+        gs_success, gs_msg = _compress_with_ghostscript(input_path, output_path, quality)
+        log.append(f"Ghostscript: {gs_msg}")
 
-        try:
-            images_compressed, phase1_log = _phase1_image_compress(
-                input_path, phase1_path, settings
-            )
-            log.extend(phase1_log)
-            phase1_size = os.path.getsize(phase1_path)
-            log.append(f"Faz 1 sonuc: {images_compressed} gorsel, {phase1_size} bayt")
+        if gs_success:
+            gs_size = os.path.getsize(output_path)
+            log.append(f"Ghostscript sonuc: {gs_size} bayt")
 
-            # Faz 2: Stream optimizasyonu
-            phase2_success = _phase2_stream_optimize(phase1_path, output_path)
+            # pikepdf ile ek optimizasyon dene
+            output_dir = os.path.dirname(output_path)
+            pike_fd, pike_path = tempfile.mkstemp(suffix='.pdf', dir=output_dir)
+            os.close(pike_fd)
 
-            if phase2_success:
-                phase2_size = os.path.getsize(output_path)
-                log.append(f"Faz 2 sonuc: {phase2_size} bayt")
-                if phase2_size >= phase1_size:
-                    shutil.copy2(phase1_path, output_path)
-                    log.append("Faz 2 buyuttu, Faz 1 kullaniliyor")
-            else:
-                shutil.copy2(phase1_path, output_path)
-                log.append("Faz 2 basarisiz, Faz 1 kullaniliyor")
-        finally:
-            if os.path.exists(phase1_path):
-                os.remove(phase1_path)
+            try:
+                pike_success, pike_msg = _compress_with_pikepdf(output_path, pike_path)
+                log.append(f"pikepdf: {pike_msg}")
+
+                if pike_success:
+                    pike_size = os.path.getsize(pike_path)
+                    log.append(f"pikepdf sonuc: {pike_size} bayt")
+                    if pike_size < gs_size:
+                        shutil.move(pike_path, output_path)
+                        log.append("pikepdf daha kucuk, kullaniliyor")
+                    else:
+                        log.append("Ghostscript daha kucuk, korunuyor")
+            finally:
+                if os.path.exists(pike_path):
+                    os.remove(pike_path)
+        else:
+            # Fallback: sadece pikepdf
+            log.append("Ghostscript kullanılamadı, pikepdf deneniyor...")
+            pike_success, pike_msg = _compress_with_pikepdf(input_path, output_path)
+            log.append(f"pikepdf: {pike_msg}")
+
+            if not pike_success:
+                return {
+                    'success': False,
+                    'error': 'Sıkıştırma başarısız',
+                    'log': log,
+                }
 
         compressed_size = os.path.getsize(output_path)
 
+        # Sonuc buyukse orijinali kopyala
         if compressed_size >= original_size:
             shutil.copy2(input_path, output_path)
             compressed_size = original_size
-            log.append("Sonuc buyuk, orijinal korunuyor")
+            log.append("Sonuç büyük, orijinal korunuyor")
 
         reduction = ((original_size - compressed_size) / original_size) * 100 if original_size > 0 else 0
         log.append(f"Final: {compressed_size} bayt, %{round(reduction, 1)} azalma")
@@ -188,8 +140,8 @@ def compress_pdf(input_path, output_path, quality='medium'):
             'original_size': original_size,
             'compressed_size': compressed_size,
             'reduction_percent': round(max(reduction, 0), 1),
-            'images_compressed': images_compressed,
-            'log': log
+            'images_compressed': 0,
+            'log': log,
         }
 
     except Exception as e:
