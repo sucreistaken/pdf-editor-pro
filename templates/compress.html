@@ -128,6 +128,14 @@
                     <div class="quality-desc">{{ _('compress_low_desc') }}</div>
                 </div>
             </label>
+            <label class="quality-option" data-quality="maximum" onclick="selectQuality('maximum')">
+                <input type="radio" name="quality" value="maximum">
+                <div class="quality-radio"></div>
+                <div class="quality-text">
+                    <div class="quality-title">Maksimum</div>
+                    <div class="quality-desc">En yüksek sıkıştırma (Ghostscript) - daha yavaş ama en küçük dosya</div>
+                </div>
+            </label>
         </div>
         <div class="compress-estimate" id="compressEstimate">
             {{ _('compress_medium') }}: <span class="estimate-value">~%30-50</span> {{ _('compress_estimate_reduction') or 'küçülme beklenir' }}
@@ -183,9 +191,10 @@
     }
 
     const estimateMap = {
-        high:   { label: __('compress_high'),   range: '~%10-20' },
-        medium: { label: __('compress_medium'), range: '~%30-50' },
-        low:    { label: __('compress_low'),    range: '~%50-70' }
+        high:    { label: __('compress_high'),   range: '~%10-20' },
+        medium:  { label: __('compress_medium'), range: '~%30-50' },
+        low:     { label: __('compress_low'),    range: '~%50-70' },
+        maximum: { label: 'Maksimum',           range: '~%60-80' }
     };
 
     function selectQuality(q) {
