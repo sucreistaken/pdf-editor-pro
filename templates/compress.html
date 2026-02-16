@@ -264,6 +264,18 @@
                     <a href="${data.download_url}" class="download-btn">${__('download')}</a>
                 `;
 
+                // Debug log goster
+                if (data.log && data.log.length > 0) {
+                    resultDiv.innerHTML += `
+                        <details style="margin-top:16px;text-align:left;">
+                            <summary style="cursor:pointer;color:rgba(255,255,255,0.7);font-size:0.85rem;">
+                                Detaylı Log (${data.log.length} satır)
+                            </summary>
+                            <pre style="margin-top:8px;padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.75rem;color:rgba(255,255,255,0.6);max-height:300px;overflow:auto;white-space:pre-wrap;">${data.log.join('\n')}</pre>
+                        </details>
+                    `;
+                }
+
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'compress');
 
                 // Warning if reduction is minimal

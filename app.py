@@ -1207,7 +1207,8 @@ def api_compress():
             compressed_size=format_size(result['compressed_size']),
             reduction=result['reduction_percent'],
             images_compressed=result.get('images_compressed', 0),
-            download_url=f'/download/{output_filename}?name=compressed.pdf'
+            download_url=f'/download/{output_filename}?name=compressed.pdf',
+            log=result.get('log', [])
         )
     else:
         return jsonify(result), 400

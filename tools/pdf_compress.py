@@ -17,89 +17,96 @@ logger = logging.getLogger(__name__)
 def _phase1_image_compress(input_path, output_path, quality_settings):
     """Faz 1: PyMuPDF ile gomulu gorsel sikistirma.
 
-    ONEMLI: Gorsel boyutlari (Width/Height) ASLA degistirilmez.
-    Sadece JPEG kalitesi dusurulur. Boyut degistirmek sayfa transformation
-    matrix'ini bozar ve bos sayfalara neden olur.
+    GUVENLI YAKLASIM:
+    - Gorsel boyutlari (Width/Height) ASLA degistirilmez
+    - ColorSpace ASLA degistirilmez (ICC profilleri korunur)
+    - Sadece stream verisi ve Filter guncellenir
+    - Alfa kanalli / CMYK / Palette gorseller atlanir
     """
     jpeg_quality = quality_settings['jpeg_quality']
 
     doc = fitz.open(input_path)
     images_compressed = 0
     xrefs_done = set()
+    log_entries = []
 
-    for page in doc:
+    for page_num, page in enumerate(doc):
         for img_info in page.get_images(full=True):
             xref = img_info[0]
-            smask = img_info[1]  # SMask xref (transparency)
+            smask = img_info[1]
 
             if xref in xrefs_done:
                 continue
             xrefs_done.add(xref)
 
-            # Transparency/SMask iceren gorselleri atla - JPEG desteklemez
             if smask and smask != 0:
+                log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (SMask/seffaf)")
                 continue
 
             try:
                 base_image = doc.extract_image(xref)
                 if not base_image:
+                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (extract bos)")
                     continue
 
                 img_bytes = base_image["image"]
                 width = base_image["width"]
                 height = base_image["height"]
+                ext = base_image.get("ext", "?")
+                cs = base_image.get("colorspace", 0)
+                bpc = base_image.get("bpc", 0)
 
-                # Cok kucuk gorselleri atla (ikon, logo vs.)
                 if width < 100 and height < 100:
+                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (kucuk {width}x{height})")
                     continue
 
-                # Zaten JPEG ve kucukse atla
-                if base_image.get("ext") == "jpeg" and len(img_bytes) < 50000:
+                if ext == "jpeg" and len(img_bytes) < 50000:
+                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (kucuk JPEG {len(img_bytes)}B)")
                     continue
 
                 pil_img = Image.open(io.BytesIO(img_bytes))
+                mode = pil_img.mode
 
-                # Alfa kanalli gorselleri atla (JPEG desteklemez)
-                if pil_img.mode in ('RGBA', 'PA', 'LA', 'P'):
-                    # P mode palette'li olabilir, alfa icerip icermedigini bilemeyiz
+                # Sadece RGB ve L (grayscale) isle - diger her sey atla
+                if mode not in ('RGB', 'L'):
+                    log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: ATLA (mode={mode}, {width}x{height}, {ext})")
                     continue
 
-                # Renk modu donusumu
-                if pil_img.mode == 'CMYK':
-                    pil_img = pil_img.convert('RGB')
-                    is_gray = False
-                elif pil_img.mode == 'L':
-                    is_gray = True
-                elif pil_img.mode != 'RGB':
-                    pil_img = pil_img.convert('RGB')
-                    is_gray = False
-                else:
-                    is_gray = False
-
-                # JPEG olarak yeniden sikistir (BOYUT DEGISTIRMEDEN)
+                # JPEG olarak yeniden sikistir (BOYUT VE COLORSPACE DEGISTIRMEDEN)
                 buf = io.BytesIO()
                 pil_img.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
                 compressed_bytes = buf.getvalue()
 
-                # Sadece %10'dan fazla kuculduyse degistir (guvenli esik)
-                if len(compressed_bytes) < len(img_bytes) * 0.90:
+                orig_size = len(img_bytes)
+                new_size = len(compressed_bytes)
+                saving_pct = round((1 - new_size / orig_size) * 100, 1) if orig_size > 0 else 0
+
+                if new_size < orig_size * 0.90:
+                    # MINIMAL degisiklik: sadece stream + filter
                     doc.update_stream(xref, compressed_bytes)
                     doc.xref_set_key(xref, "Filter", "/DCTDecode")
                     doc.xref_set_key(xref, "DecodeParms", "null")
-                    doc.xref_set_key(xref, "ColorSpace",
-                                     "/DeviceGray" if is_gray else "/DeviceRGB")
-                    doc.xref_set_key(xref, "BitsPerComponent", "8")
-                    doc.xref_set_key(xref, "Length", str(len(compressed_bytes)))
-                    # Width ve Height DEGISTIRILMEZ - orijinal degerler korunur
+                    doc.xref_set_key(xref, "Length", str(new_size))
+                    # Width, Height, ColorSpace, BitsPerComponent -> DOKUNMA
                     images_compressed += 1
+                    log_entries.append(
+                        f"[Sayfa {page_num+1}] xref={xref}: OK {width}x{height} "
+                        f"{ext}/{mode} cs={cs} bpc={bpc} "
+                        f"{orig_size}B -> {new_size}B (%{saving_pct})"
+                    )
+                else:
+                    log_entries.append(
+                        f"[Sayfa {page_num+1}] xref={xref}: ATLA (az tasarruf %{saving_pct}, "
+                        f"{width}x{height} {ext}/{mode})"
+                    )
 
             except Exception as e:
-                logger.warning(f"Görsel sıkıştırma hatası (xref={xref}): {e}")
+                log_entries.append(f"[Sayfa {page_num+1}] xref={xref}: HATA {e}")
                 continue
 
-    doc.save(output_path, garbage=4, deflate=True, clean=True)
+    doc.save(output_path, garbage=4, deflate=True)
     doc.close()
-    return images_compressed
+    return images_compressed, log_entries
 
 
 def _phase2_stream_optimize(input_path, output_path):
@@ -129,12 +136,13 @@ def compress_pdf(input_path, output_path, quality='medium'):
     """
     try:
         quality_settings = {
-            'low': {'max_dim': 800, 'jpeg_quality': 30},
-            'medium': {'max_dim': 1200, 'jpeg_quality': 50},
-            'high': {'max_dim': 1600, 'jpeg_quality': 75}
+            'low': {'jpeg_quality': 30},
+            'medium': {'jpeg_quality': 50},
+            'high': {'jpeg_quality': 75}
         }
         settings = quality_settings.get(quality, quality_settings['medium'])
         original_size = os.path.getsize(input_path)
+        log = [f"Orijinal boyut: {original_size} bayt, Kalite: {quality}"]
 
         # Faz 1: Gorsel sikistirma (gecici dosyaya yaz)
         output_dir = os.path.dirname(output_path)
@@ -142,40 +150,46 @@ def compress_pdf(input_path, output_path, quality='medium'):
         os.close(phase1_fd)
 
         try:
-            images_compressed = _phase1_image_compress(input_path, phase1_path, settings)
+            images_compressed, phase1_log = _phase1_image_compress(
+                input_path, phase1_path, settings
+            )
+            log.extend(phase1_log)
             phase1_size = os.path.getsize(phase1_path)
+            log.append(f"Faz 1 sonuc: {images_compressed} gorsel, {phase1_size} bayt")
 
             # Faz 2: Stream optimizasyonu
             phase2_success = _phase2_stream_optimize(phase1_path, output_path)
 
             if phase2_success:
                 phase2_size = os.path.getsize(output_path)
-                # Faz 2 buyuttuyse Faz 1 sonucunu kullan
+                log.append(f"Faz 2 sonuc: {phase2_size} bayt")
                 if phase2_size >= phase1_size:
                     shutil.copy2(phase1_path, output_path)
+                    log.append("Faz 2 buyuttu, Faz 1 kullaniliyor")
             else:
-                # pikepdf basarisiz: Faz 1 sonucunu kullan
                 shutil.copy2(phase1_path, output_path)
+                log.append("Faz 2 basarisiz, Faz 1 kullaniliyor")
         finally:
-            # Gecici Faz 1 dosyasini temizle
             if os.path.exists(phase1_path):
                 os.remove(phase1_path)
 
         compressed_size = os.path.getsize(output_path)
 
-        # Sonuc buyukse orijinali kopyala
         if compressed_size >= original_size:
             shutil.copy2(input_path, output_path)
             compressed_size = original_size
+            log.append("Sonuc buyuk, orijinal korunuyor")
 
         reduction = ((original_size - compressed_size) / original_size) * 100 if original_size > 0 else 0
+        log.append(f"Final: {compressed_size} bayt, %{round(reduction, 1)} azalma")
 
         return {
             'success': True,
             'original_size': original_size,
             'compressed_size': compressed_size,
             'reduction_percent': round(max(reduction, 0), 1),
-            'images_compressed': images_compressed
+            'images_compressed': images_compressed,
+            'log': log
         }
 
     except Exception as e:
