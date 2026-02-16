@@ -15,23 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 def _phase1_image_compress(input_path, output_path, quality_settings):
-    """Faz 1: JPEG gorselleri dusuk kalitede + opsiyonel boyut kucultme.
-
-    Guvenli degisiklikler:
-    - stream verisi (yeni JPEG bytes)
-    - Length (yeni boyut)
-    - Width/Height (sadece boyut kucultme yapildiysa)
-    Filter, ColorSpace, DecodeParms, BitsPerComponent -> DOKUNULMAZ.
-    """
+    """Faz 1: JPEG gorselleri dusuk kalitede + opsiyonel boyut kucultme."""
     jpeg_quality = quality_settings['jpeg_quality']
-    max_dim = quality_settings.get('max_dim')  # None ise boyut kucultme yok
+    max_dim = quality_settings.get('max_dim')
 
     doc = fitz.open(input_path)
     images_compressed = 0
     xrefs_done = set()
-    log_entries = []
 
-    for page_num, page in enumerate(doc):
+    for page in doc:
         for img_info in page.get_images(full=True):
             xref = img_info[0]
             smask = img_info[1]
@@ -41,7 +33,6 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
             xrefs_done.add(xref)
 
             if smask and smask != 0:
-                log_entries.append(f"[S.{page_num+1}] xref={xref}: ATLA (seffaf)")
                 continue
 
             try:
@@ -56,7 +47,6 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
 
                 # Sadece JPEG gorselleri isle
                 if ext != "jpeg":
-                    log_entries.append(f"[S.{page_num+1}] xref={xref}: ATLA ({ext})")
                     continue
 
                 if width < 100 and height < 100:
@@ -82,7 +72,6 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
 
                 orig_size = len(img_bytes)
                 new_size = len(compressed_bytes)
-                saving_pct = round((1 - new_size / orig_size) * 100, 1)
 
                 if new_size < orig_size * 0.90:
                     doc.update_stream(xref, compressed_bytes)
@@ -91,23 +80,14 @@ def _phase1_image_compress(input_path, output_path, quality_settings):
                         doc.xref_set_key(xref, "Width", str(new_w))
                         doc.xref_set_key(xref, "Height", str(new_h))
                     images_compressed += 1
-                    dim_info = f" -> {new_w}x{new_h}" if resized else ""
-                    log_entries.append(
-                        f"[S.{page_num+1}] xref={xref}: OK {width}x{height}{dim_info} "
-                        f"{pil_img.mode} {orig_size}B->{new_size}B (%{saving_pct})"
-                    )
-                else:
-                    log_entries.append(
-                        f"[S.{page_num+1}] xref={xref}: ATLA (az tasarruf %{saving_pct})"
-                    )
 
             except Exception as e:
-                log_entries.append(f"[S.{page_num+1}] xref={xref}: HATA {e}")
+                logger.warning(f"Gorsel sikistirma hatasi (xref={xref}): {e}")
                 continue
 
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
-    return images_compressed, log_entries
+    return images_compressed
 
 
 def _phase2_stream_optimize(input_path, output_path):
@@ -124,16 +104,16 @@ def _phase2_stream_optimize(input_path, output_path):
         pdf.close()
         return True
     except Exception as e:
-        logger.warning(f"pikepdf hatası: {e}")
+        logger.warning(f"pikepdf hatasi: {e}")
         return False
 
 
 def compress_pdf(input_path, output_path, quality='medium'):
     """
     PDF sikistirma - 3 kalite seviyesi:
-    - high:   Sadece JPEG kalite dusurme (75), boyut ayni
-    - medium: JPEG kalite dusurme (50) + boyut kucultme (maks 1600px)
-    - low:    JPEG kalite dusurme (30) + boyut kucultme (maks 1200px)
+    - high:   JPEG kalite 75, boyut ayni
+    - medium: JPEG kalite 50, maks 1600px
+    - low:    JPEG kalite 30, maks 1200px
     """
     try:
         quality_settings = {
@@ -143,7 +123,6 @@ def compress_pdf(input_path, output_path, quality='medium'):
         }
 
         original_size = os.path.getsize(input_path)
-        log = [f"Orijinal: {original_size} bayt, Kalite: {quality}"]
         settings = quality_settings.get(quality, quality_settings['medium'])
 
         output_dir = os.path.dirname(output_path)
@@ -151,23 +130,19 @@ def compress_pdf(input_path, output_path, quality='medium'):
         os.close(phase1_fd)
 
         try:
-            images_compressed, phase1_log = _phase1_image_compress(
+            images_compressed = _phase1_image_compress(
                 input_path, phase1_path, settings
             )
-            log.extend(phase1_log)
             phase1_size = os.path.getsize(phase1_path)
-            log.append(f"Faz1: {images_compressed} gorsel, {phase1_size} bayt")
 
             phase2_success = _phase2_stream_optimize(phase1_path, output_path)
 
             if phase2_success:
                 phase2_size = os.path.getsize(output_path)
-                log.append(f"Faz2: {phase2_size} bayt")
                 if phase2_size >= phase1_size:
                     shutil.copy2(phase1_path, output_path)
             else:
                 shutil.copy2(phase1_path, output_path)
-                log.append("Faz2 basarisiz, Faz1 kullaniliyor")
         finally:
             if os.path.exists(phase1_path):
                 os.remove(phase1_path)
@@ -177,10 +152,8 @@ def compress_pdf(input_path, output_path, quality='medium'):
         if compressed_size >= original_size:
             shutil.copy2(input_path, output_path)
             compressed_size = original_size
-            log.append("Sonuc buyuk, orijinal korunuyor")
 
         reduction = ((original_size - compressed_size) / original_size) * 100 if original_size > 0 else 0
-        log.append(f"Final: {compressed_size} bayt, %{round(reduction, 1)} azalma")
 
         return {
             'success': True,
@@ -188,7 +161,6 @@ def compress_pdf(input_path, output_path, quality='medium'):
             'compressed_size': compressed_size,
             'reduction_percent': round(max(reduction, 0), 1),
             'images_compressed': images_compressed,
-            'log': log,
         }
 
     except Exception as e:
