@@ -7,7 +7,6 @@ import os
 import io
 import logging
 import shutil
-import subprocess
 import tempfile
 import fitz  # PyMuPDF
 from PIL import Image
@@ -129,63 +128,22 @@ def _phase2_stream_optimize(input_path, output_path):
         return False
 
 
-def _compress_with_ghostscript(input_path, output_path, gs_setting='/ebook'):
-    """Ghostscript ile tam sikistirma (en agresif yontem)."""
-    cmd = [
-        'gs', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.4',
-        f'-dPDFSETTINGS={gs_setting}',
-        '-dNOPAUSE', '-dBATCH', '-dQUIET',
-        f'-sOutputFile={output_path}', input_path,
-    ]
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=300, text=True)
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
 def compress_pdf(input_path, output_path, quality='medium'):
     """
-    PDF sikistirma - 4 kalite seviyesi:
-    - high:    Sadece JPEG kalite dusurme (75), boyut ayni
-    - medium:  JPEG kalite dusurme (50) + boyut kucultme (maks 1600px)
-    - low:     JPEG kalite dusurme (30) + boyut kucultme (maks 1200px)
-    - maximum: Ghostscript /ebook (en agresif, yavas)
+    PDF sikistirma - 3 kalite seviyesi:
+    - high:   Sadece JPEG kalite dusurme (75), boyut ayni
+    - medium: JPEG kalite dusurme (50) + boyut kucultme (maks 1600px)
+    - low:    JPEG kalite dusurme (30) + boyut kucultme (maks 1200px)
     """
     try:
         quality_settings = {
-            'high':    {'jpeg_quality': 75},
-            'medium':  {'jpeg_quality': 50, 'max_dim': 1600},
-            'low':     {'jpeg_quality': 30, 'max_dim': 1200},
+            'high':   {'jpeg_quality': 75},
+            'medium': {'jpeg_quality': 50, 'max_dim': 1600},
+            'low':    {'jpeg_quality': 30, 'max_dim': 1200},
         }
 
         original_size = os.path.getsize(input_path)
         log = [f"Orijinal: {original_size} bayt, Kalite: {quality}"]
-
-        # Maximum: Ghostscript kullan
-        if quality == 'maximum':
-            log.append("Ghostscript /ebook kullaniliyor...")
-            gs_success = _compress_with_ghostscript(input_path, output_path)
-            if gs_success:
-                compressed_size = os.path.getsize(output_path)
-                if compressed_size >= original_size:
-                    shutil.copy2(input_path, output_path)
-                    compressed_size = original_size
-                    log.append("Sonuc buyuk, orijinal korunuyor")
-                reduction = ((original_size - compressed_size) / original_size) * 100 if original_size > 0 else 0
-                log.append(f"Final: {compressed_size} bayt, %{round(reduction, 1)} azalma")
-                return {
-                    'success': True,
-                    'original_size': original_size,
-                    'compressed_size': compressed_size,
-                    'reduction_percent': round(max(reduction, 0), 1),
-                    'images_compressed': 0,
-                    'log': log,
-                }
-            else:
-                log.append("Ghostscript basarisiz, standart yontem deneniyor...")
-                quality = 'low'  # fallback
-
         settings = quality_settings.get(quality, quality_settings['medium'])
 
         output_dir = os.path.dirname(output_path)

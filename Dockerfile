@@ -3,7 +3,6 @@ FROM python:3.12-slim
 # System dependencies for PDF processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
-    ghostscript \
     libglib2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
