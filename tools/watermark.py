@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def add_text_watermark(input_path, output_path, text, position='center',
-                       opacity=0.3, font_size=50, color=(0.5, 0.5, 0.5),
+                       opacity=0.3, font_size=50, color=(0, 0, 0),
                        rotation=0):
     """
     Add text watermark to all pages
@@ -48,6 +48,9 @@ def add_text_watermark(input_path, output_path, text, position='center',
             if position == 'center':
                 x = (page_width - text_width) / 2
                 y = page_height / 2
+            elif position == 'top-center':
+                x = (page_width - text_width) / 2
+                y = page_height - 50
             elif position == 'top-right':
                 x = page_width - text_width - 50
                 y = page_height - 50
@@ -125,6 +128,9 @@ def add_image_watermark(input_path, output_path, image_path,
             if position == 'center':
                 x = (page_width - scaled_width) / 2
                 y = (page_height - scaled_height) / 2
+            elif position == 'top-center':
+                x = (page_width - scaled_width) / 2
+                y = page_height - scaled_height - 20
             elif position == 'top-right':
                 x = page_width - scaled_width - 20
                 y = page_height - scaled_height - 20

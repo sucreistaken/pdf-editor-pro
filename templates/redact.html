@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('redact_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}🔒{% endblock %}
+{% block header_title %}{{ _('redact_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('redact_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-bar {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px;
+        display: none; align-items: center; justify-content: space-between;
+    }
+    .file-info-bar.show { display: flex; }
+    .file-info-bar .file-name { font-weight: 600; font-size: 0.95rem; }
+    .file-info-bar .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+    .file-info-bar .change-btn {
+        padding: 6px 14px; background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2); color: white;
+        border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    }
+
+    /* Tabs */
+    .redact-tabs { display: flex; gap: 4px; margin: 20px 0; display: none; }
+    .redact-tabs.show { display: flex; }
+    .redact-tab {
+        flex: 1; padding: 12px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        color: rgba(255,255,255,0.6); font-weight: 700; font-size: 0.9rem;
+        cursor: pointer; text-align: center; transition: all 0.3s;
+    }
+    .redact-tab.active {
+        background: rgba(153,27,27,0.4); border-color: rgba(220,38,38,0.6); color: white;
+    }
+
+    /* Text search tab */
+    .text-search-section { display: none; margin: 20px 0; }
+    .text-search-section.show { display: block; }
+    .search-input-wrap {
+        display: flex; gap: 10px; margin-bottom: 16px;
+    }
+    .search-input-wrap input {
+        flex: 1; padding: 14px 18px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+        color: white; font-size: 1rem; font-family: inherit; outline: none;
+    }
+    .search-input-wrap input::placeholder { color: rgba(255,255,255,0.4); }
+    .search-input-wrap input:focus { border-color: rgba(255,255,255,0.4); }
+
+    /* Area selection tab */
+    .area-section { display: none; margin: 20px 0; }
+    .area-section.show { display: block; }
+    .preview-container {
+        position: relative; background: rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+        overflow: hidden; margin-bottom: 16px;
+    }
+    .preview-container canvas { display: block; width: 100%; cursor: crosshair; }
+    .page-nav {
+        display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;
+    }
+    .page-nav button {
+        padding: 8px 16px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+        color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;
+    }
+    .page-nav button:hover { background: rgba(255,255,255,0.2); }
+    .page-nav button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-nav span { font-weight: 600; font-size: 0.9rem; }
+    .redact-count {
+        text-align: center; padding: 10px; font-weight: 600; font-size: 0.9rem;
+        color: rgba(255,255,255,0.7);
+    }
+
+    /* Loading */
+    .extracting-indicator { display: none; text-align: center; padding: 30px; margin-top: 20px; }
+    .extracting-indicator.show { display: block; }
+    .extracting-indicator .spinner {
+        width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15);
+        border-top-color: #dc2626; border-radius: 50%;
+        animation: spin 0.8s linear infinite; margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+        .search-input-wrap { flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('step_configure') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Drop Zone -->
+    <div id="uploadSection">
+        <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/>
+                <line x1="9" y1="9" x2="15" y2="15" stroke-width="2" stroke-linecap="round"/>
+                <line x1="15" y1="9" x2="9" y2="15" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <h3>{{ _('upload_file') }}</h3>
+            <p>{{ _('redact_subtitle') }}</p>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+        <div class="file-info-bar" id="fileInfoBar">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <button class="change-btn" onclick="resetUpload()">{{ _('remove') }}</button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="redact-tabs" id="redactTabs">
+        <div class="redact-tab active" onclick="switchTab('text')">{{ _('redact_tab_text') }}</div>
+        <div class="redact-tab" onclick="switchTab('area')">{{ _('redact_tab_area') }}</div>
+    </div>
+
+    <!-- Text Search -->
+    <div class="text-search-section" id="textSearchSection">
+        <div class="search-input-wrap">
+            <input type="text" id="searchText" placeholder="{{ _('redact_search_placeholder') }}">
+        </div>
+    </div>
+
+    <!-- Area Selection -->
+    <div class="area-section" id="areaSection">
+        <div class="page-nav">
+            <button id="prevPageBtn" onclick="changePage(-1)" disabled>{{ _('prev_page') }}</button>
+            <span id="pageInfo">{{ _('page') }} 1/1</span>
+            <button id="nextPageBtn" onclick="changePage(1)">{{ _('next_page') }}</button>
+        </div>
+        <div class="preview-container">
+            <canvas id="previewCanvas"></canvas>
+        </div>
+        <div class="redact-count" id="redactCount"></div>
+    </div>
+
+    <!-- Redact Button -->
+    <button class="btn-primary" id="redactBtn" disabled>{{ _('redact_btn') }}</button>
+
+    <!-- Loading -->
+    <div class="extracting-indicator" id="loadingIndicator">
+        <div class="spinner"></div>
+        <span>{{ _('redact_btn_loading') }}</span>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="resultSection"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    let selectedFile = null;
+    let currentTab = 'text';
+    let currentPageNum = 0;
+    let totalPages = 1;
+    let pageWidth = 0, pageHeight = 0;
+    let redactAreas = [];
+    let isDrawing = false;
+    let startX, startY;
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const redactBtn = document.getElementById('redactBtn');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf', multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBar').classList.add('show');
+        document.getElementById('redactTabs').classList.add('show');
+        dropZone.style.display = 'none';
+        redactBtn.disabled = false;
+        steps.setStep(1);
+        switchTab(currentTab);
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        redactAreas = [];
+        currentPageNum = 0;
+        document.getElementById('fileInfoBar').classList.remove('show');
+        document.getElementById('redactTabs').classList.remove('show');
+        document.getElementById('textSearchSection').classList.remove('show');
+        document.getElementById('areaSection').classList.remove('show');
+        dropZone.style.display = '';
+        redactBtn.disabled = true;
+        document.getElementById('resultSection').className = 'result';
+        document.getElementById('loadingIndicator').classList.remove('show');
+        fileInput.value = '';
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.redact-tab').forEach((t, i) => {
+            t.classList.toggle('active', (tab === 'text' && i === 0) || (tab === 'area' && i === 1));
+        });
+        document.getElementById('textSearchSection').classList.toggle('show', tab === 'text');
+        document.getElementById('areaSection').classList.toggle('show', tab === 'area');
+
+        if (tab === 'area' && selectedFile) {
+            loadPreview();
+        }
+    }
+
+    async function loadPreview() {
+        if (!selectedFile) return;
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('page', currentPageNum);
+        formData.append('width', 600);
+        try {
+            const data = await uploadWithProgress('/api/preview', formData);
+            if (data.success) {
+                totalPages = data.total_pages;
+                pageWidth = data.page_width;
+                pageHeight = data.page_height;
+                document.getElementById('pageInfo').textContent = `${__('page')} ${currentPageNum + 1}/${totalPages}`;
+                document.getElementById('prevPageBtn').disabled = currentPageNum <= 0;
+                document.getElementById('nextPageBtn').disabled = currentPageNum >= totalPages - 1;
+
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    drawRedactAreas();
+                };
+                img.src = data.image;
+            }
+        } catch (e) {
+            showToast(__('error'), 'error');
+        }
+    }
+
+    function changePage(delta) {
+        currentPageNum = Math.max(0, Math.min(totalPages - 1, currentPageNum + delta));
+        loadPreview();
+    }
+
+    // Canvas drawing
+    canvas.addEventListener('mousedown', (e) => {
+        if (currentTab !== 'area') return;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        isDrawing = true;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+
+        loadPreview().then ? null : null;
+        // Redraw
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        // Simple redraw approach
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // We need to just draw the rectangle overlay
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if (!isDrawing) return;
+        isDrawing = false;
+        const rect = canvas.getBoundingClientRect();
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
+
+        const scaleX = pageWidth / canvas.width;
+        const scaleY = pageHeight / canvas.height;
+
+        const x0 = Math.min(startX, endX) * scaleX;
+        const y0 = Math.min(startY, endY) * scaleY;
+        const x1 = Math.max(startX, endX) * scaleX;
+        const y1 = Math.max(startY, endY) * scaleY;
+
+        if (Math.abs(x1 - x0) > 5 && Math.abs(y1 - y0) > 5) {
+            redactAreas.push({ page: currentPageNum, rect: [x0, y0, x1, y1],
+                canvasRect: [Math.min(startX, endX), Math.min(startY, endY), Math.abs(endX - startX), Math.abs(endY - startY)] });
+            drawRedactAreas();
+            updateRedactCount();
+        }
+    });
+
+    function drawRedactAreas() {
+        const pageAreas = redactAreas.filter(a => a.page === currentPageNum);
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.4)';
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+        ctx.lineWidth = 2;
+        pageAreas.forEach(a => {
+            if (a.canvasRect) {
+                ctx.fillRect(...a.canvasRect);
+                ctx.strokeRect(...a.canvasRect);
+            }
+        });
+    }
+
+    function updateRedactCount() {
+        const count = redactAreas.length;
+        document.getElementById('redactCount').textContent = count > 0 ? `${count} ${__('redact_areas_selected')}` : '';
+    }
+
+    // Submit
+    redactBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        redactBtn.disabled = true;
+        redactBtn.textContent = __('redact_btn_loading');
+        document.getElementById('resultSection').className = 'result';
+        document.getElementById('loadingIndicator').classList.add('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+
+        try {
+            let data;
+            if (currentTab === 'text') {
+                const searchText = document.getElementById('searchText').value.trim();
+                if (!searchText) {
+                    showToast(__('redact_text_required'), 'error');
+                    return;
+                }
+                formData.append('search_text', searchText);
+                data = await uploadWithProgress('/api/redact-text', formData);
+            } else {
+                if (redactAreas.length === 0) {
+                    showToast(__('redact_no_areas'), 'error');
+                    return;
+                }
+                formData.append('redactions', JSON.stringify(redactAreas.map(a => ({ page: a.page, rect: a.rect }))));
+                data = await uploadWithProgress('/api/redact', formData);
+            }
+
+            document.getElementById('loadingIndicator').classList.remove('show');
+
+            if (data.success) {
+                const resultDiv = document.getElementById('resultSection');
+                resultDiv.className = 'result success show';
+                resultDiv.innerHTML = `
+                    <h3>${__('redact_complete')}</h3>
+                    <p>${data.message || ''}</p>
+                    <a href="${data.download_url}" class="btn-primary" style="display:inline-block;margin-top:12px;text-decoration:none;">${__('download')}</a>
+                `;
+                resultDiv.style.display = 'block';
+                showToast(__('redact_complete'), 'success');
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'redact');
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            document.getElementById('loadingIndicator').classList.remove('show');
+            const resultDiv = document.getElementById('resultSection');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+            resultDiv.style.display = 'block';
+            showToast(error.message, 'error');
+        } finally {
+            redactBtn.disabled = false;
+            redactBtn.textContent = __('redact_btn');
+        }
+    });
+</script>
+{% endblock %}

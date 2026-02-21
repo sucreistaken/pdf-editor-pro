@@ -1,11 +1,41 @@
 """
 PDF to Excel Tool - PDF tablolarini Excel'e donustur
 """
+import re
 import pdfplumber
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _try_convert_number(value):
+    """Sayi gibi gorunen string'leri sayiya donustur"""
+    if not isinstance(value, str) or not value.strip():
+        return value
+    stripped = value.strip()
+    # Turk/Avrupa formati: 1.234,56
+    if re.match(r'^-?\d{1,3}(\.\d{3})*(,\d+)?$', stripped):
+        cleaned = stripped.replace('.', '').replace(',', '.')
+        try:
+            return float(cleaned) if '.' in cleaned else int(cleaned)
+        except (ValueError, TypeError):
+            return value
+    # Ingiliz formati: 1,234.56
+    if re.match(r'^-?\d{1,3}(,\d{3})*(\.\d+)?$', stripped):
+        cleaned = stripped.replace(',', '')
+        try:
+            return float(cleaned) if '.' in cleaned else int(cleaned)
+        except (ValueError, TypeError):
+            return value
+    # Basit sayi: 123 veya 123.45
+    if re.match(r'^-?\d+(\.\d+)?$', stripped):
+        try:
+            return float(stripped) if '.' in stripped else int(stripped)
+        except (ValueError, TypeError):
+            return value
+    return value
 
 
 def pdf_to_excel(input_path, output_path):
@@ -37,11 +67,20 @@ def pdf_to_excel(input_path, output_path):
                     text = page.extract_text()
                     if text:
                         if page_idx > 0:
-                            # Yeni sayfa icin sheet ekle
                             ws = wb.create_sheet(title=f"Sayfa {page_idx + 1}")
                             current_row = 1
                         for line in text.split('\n'):
-                            ws.cell(row=current_row, column=1, value=line.strip())
+                            line = line.strip()
+                            if not line:
+                                continue
+                            # 2+ bosluk ile split yaparak sutunlara dagit
+                            parts = re.split(r'\s{2,}', line)
+                            if len(parts) > 1:
+                                for col_idx, part in enumerate(parts):
+                                    cell_value = _try_convert_number(part.strip())
+                                    ws.cell(row=current_row, column=col_idx + 1, value=cell_value)
+                            else:
+                                ws.cell(row=current_row, column=1, value=line)
                             current_row += 1
                             total_rows += 1
                     continue
@@ -60,22 +99,24 @@ def pdf_to_excel(input_path, output_path):
                         if row is None:
                             continue
                         for col_idx, cell in enumerate(row):
-                            value = cell if cell else ''
-                            # Sayi donusumu dene
-                            try:
-                                if '.' in str(value) or ',' in str(value):
-                                    value = float(str(value).replace(',', '.'))
-                                else:
-                                    value = int(value)
-                            except (ValueError, TypeError):
-                                pass
+                            value = cell if cell is not None else ''
+                            value = _try_convert_number(value)
                             ws.cell(row=current_row, column=col_idx + 1, value=value)
                         current_row += 1
                         total_rows += 1
 
-        # Ilk default bos sheet'i kaldir (varsa)
-        if 'Sheet' in wb.sheetnames and len(wb.sheetnames) > 1:
-            del wb['Sheet']
+        # Sutun genisliklerini otomatik ayarla
+        for sheet in wb.worksheets:
+            for col_cells in sheet.columns:
+                max_length = 0
+                col_letter = get_column_letter(col_cells[0].column)
+                for cell in col_cells:
+                    if cell.value is not None:
+                        cell_length = len(str(cell.value))
+                        if cell_length > max_length:
+                            max_length = cell_length
+                adjusted_width = min(max_length + 2, 50)
+                sheet.column_dimensions[col_letter].width = max(adjusted_width, 8)
 
         wb.save(output_path)
 

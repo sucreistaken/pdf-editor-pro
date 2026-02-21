@@ -23,7 +23,7 @@
     "@context": "https://schema.org",
     "@type": "ItemList",
     "name": "{{ _('nav_tools') }}",
-    "numberOfItems": 23,
+    "numberOfItems": 28,
     "itemListElement": [
         {"@type": "ListItem", "position": 1, "url": "{{ site_url }}/{{ lang }}/merge", "name": "{{ _('merge_title') }}"},
         {"@type": "ListItem", "position": 2, "url": "{{ site_url }}/{{ lang }}/split", "name": "{{ _('split_title') }}"},
@@ -46,7 +46,12 @@
         {"@type": "ListItem", "position": 19, "url": "{{ site_url }}/{{ lang }}/pdf-to-excel", "name": "{{ _('pdf_to_excel_title') }}"},
         {"@type": "ListItem", "position": 20, "url": "{{ site_url }}/{{ lang }}/form-fill", "name": "{{ _('form_fill_title') }}"},
         {"@type": "ListItem", "position": 21, "url": "{{ site_url }}/{{ lang }}/pdf-to-word", "name": "{{ _('pdf_to_word_title') }}"},
-        {"@type": "ListItem", "position": 22, "url": "{{ site_url }}/{{ lang }}/pdf-to-pdfa", "name": "{{ _('pdf_to_pdfa_title') }}"}
+        {"@type": "ListItem", "position": 22, "url": "{{ site_url }}/{{ lang }}/pdf-to-pdfa", "name": "{{ _('pdf_to_pdfa_title') }}"},
+        {"@type": "ListItem", "position": 23, "url": "{{ site_url }}/{{ lang }}/ocr", "name": "{{ _('ocr_title') }}"},
+        {"@type": "ListItem", "position": 24, "url": "{{ site_url }}/{{ lang }}/sign", "name": "{{ _('sign_title') }}"},
+        {"@type": "ListItem", "position": 25, "url": "{{ site_url }}/{{ lang }}/redact", "name": "{{ _('redact_title') }}"},
+        {"@type": "ListItem", "position": 26, "url": "{{ site_url }}/{{ lang }}/resize", "name": "{{ _('resize_title') }}"},
+        {"@type": "ListItem", "position": 27, "url": "{{ site_url }}/{{ lang }}/office-to-pdf", "name": "{{ _('office_to_pdf_title') }}"}
     ]
 }
 </script>
@@ -590,6 +595,12 @@
                     <p>{{ _('form_fill_subtitle') }}</p>
                     <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_new') }}</div>
                 </a>
+                <a href="/{{ lang }}/resize" class="tool-card" data-keywords="boyut degistir resize a4 letter a3 a5 legal sayfa page size" style="animation-delay: 0.45s">
+                    <div class="tool-icon icon-purple">&#128208;</div>
+                    <h3>{{ _('resize_title') }}</h3>
+                    <p>{{ _('resize_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-purple"></div>{{ _('tag_new') }}</div>
+                </a>
             </div>
         </div>
 
@@ -637,6 +648,12 @@
                     <p>{{ _('pdf_to_pdfa_subtitle') }}</p>
                     <div class="tool-tag"><div class="tool-tag-dot dot-purple"></div>{{ _('tag_new') }}</div>
                 </a>
+                <a href="/{{ lang }}/office-to-pdf" class="tool-card" data-keywords="word excel powerpoint docx xlsx pptx office donustur convert" style="animation-delay: 0.4s">
+                    <div class="tool-icon icon-blue">&#128196;</div>
+                    <h3>{{ _('office_to_pdf_title') }}</h3>
+                    <p>{{ _('office_to_pdf_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-blue"></div>{{ _('tag_new') }}</div>
+                </a>
             </div>
         </div>
 
@@ -666,6 +683,18 @@
                     <p>{{ _('metadata_subtitle') }}</p>
                     <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_privacy') }}</div>
                 </a>
+                <a href="/{{ lang }}/sign" class="tool-card" data-keywords="imza imzala sign signature el yazisi e-imza dijital" style="animation-delay: 0.25s">
+                    <div class="tool-icon icon-orange">&#9997;&#65039;</div>
+                    <h3>{{ _('sign_title') }}</h3>
+                    <p>{{ _('sign_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-orange"></div>{{ _('tag_new') }}</div>
+                </a>
+                <a href="/{{ lang }}/redact" class="tool-card" data-keywords="karala sansur redact censor hassas bilgi gizle karalama" style="animation-delay: 0.3s">
+                    <div class="tool-icon icon-pink">&#128275;</div>
+                    <h3>{{ _('redact_title') }}</h3>
+                    <p>{{ _('redact_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-pink"></div>{{ _('tag_new') }}</div>
+                </a>
             </div>
         </div>
 
@@ -688,6 +717,12 @@
                     <h3>{{ _('extract_images_title') }}</h3>
                     <p>{{ _('extract_images_subtitle') }}</p>
                     <div class="tool-tag"><div class="tool-tag-dot dot-orange"></div>{{ _('tag_export') }}</div>
+                </a>
+                <a href="/{{ lang }}/ocr" class="tool-card" data-keywords="ocr metin tanima taranmis scan karakter tespit text recognition" style="animation-delay: 0.2s">
+                    <div class="tool-icon icon-cyan">&#128269;</div>
+                    <h3>{{ _('ocr_title') }}</h3>
+                    <p>{{ _('ocr_subtitle') }}</p>
+                    <div class="tool-tag"><div class="tool-tag-dot dot-cyan"></div>{{ _('tag_new') }}</div>
                 </a>
             </div>
         </div>

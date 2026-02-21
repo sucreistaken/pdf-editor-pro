@@ -61,8 +61,34 @@
         min-width: 0;
     }
 
+    .position-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;
+    }
+    .position-btn {
+        padding: 14px 12px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        color: white; font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; transition: all 0.3s; text-align: center;
+    }
+    .position-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .position-btn.active { background: rgba(126,34,206,0.3); border-color: rgba(126,34,206,0.6); }
+    .position-btn .pos-icon { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+
+    .watermark-thumb-preview {
+        margin-top: 12px; padding: 12px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px; text-align: center; display: none;
+    }
+    .watermark-thumb-preview img {
+        max-width: 120px; max-height: 80px;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+    }
+
     @media (max-width: 600px) {
         .form-row { grid-template-columns: 1fr; }
+        .position-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .position-btn { padding: 10px 8px; font-size: 0.75rem; }
     }
 </style>
 {% endblock %}
@@ -107,23 +133,23 @@
                     <input type="text" id="watermarkText" placeholder="örneğin: GİZLİ, TASLAK, &copy; 2024">
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>{{ _('watermark_position') }}</label>
-                        <select id="textPosition">
-                            <option value="center">{{ _('pos_center') }}</option>
-                            <option value="top-left">{{ _('pos_top_left') }}</option>
-                            <option value="top-right">{{ _('pos_top_right') }}</option>
-                            <option value="bottom-left">{{ _('pos_bottom_left') }}</option>
-                            <option value="bottom-right">{{ _('pos_bottom_right') }}</option>
-                        </select>
+                <div class="form-group">
+                    <label>{{ _('watermark_position') }}</label>
+                    <div class="position-grid" id="textPositionGrid">
+                        <button class="position-btn" data-pos="top-left" type="button"><span class="pos-icon">&#8598;</span>{{ _('pos_top_left') }}</button>
+                        <button class="position-btn" data-pos="top-center" type="button"><span class="pos-icon">&#8593;</span>{{ _('pos_top_center') }}</button>
+                        <button class="position-btn" data-pos="top-right" type="button"><span class="pos-icon">&#8599;</span>{{ _('pos_top_right') }}</button>
+                        <button class="position-btn" data-pos="bottom-left" type="button"><span class="pos-icon">&#8601;</span>{{ _('pos_bottom_left') }}</button>
+                        <button class="position-btn active" data-pos="center" type="button"><span class="pos-icon">&#11093;</span>{{ _('pos_center') }}</button>
+                        <button class="position-btn" data-pos="bottom-right" type="button"><span class="pos-icon">&#8600;</span>{{ _('pos_bottom_right') }}</button>
                     </div>
-                    <div class="form-group">
-                        <label>{{ _('watermark_color') }}</label>
-                        <div class="color-row">
-                            <input type="color" id="textColor" value="#808080">
-                            <span class="color-hex" id="textColorHex">#808080</span>
-                        </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ _('watermark_color') }}</label>
+                    <div class="color-row">
+                        <input type="color" id="textColor" value="#000000">
+                        <span class="color-hex" id="textColorHex">#000000</span>
                     </div>
                 </div>
 
@@ -162,6 +188,11 @@
                         <p>{{ _('preview_placeholder') }}</p>
                     </div>
                 </div>
+                <div class="preview-nav" id="textPreviewNav" style="display: none;">
+                    <button id="textPrevPageBtn" disabled>&laquo; {{ _('prev_page') }}</button>
+                    <span id="textPageInfo">{{ _('page_info') }}</span>
+                    <button id="textNextPageBtn">{{ _('next_page') }} &raquo;</button>
+                </div>
             </div>
         </div>
     </div>
@@ -191,40 +222,59 @@
             <input type="file" id="watermarkImageInput" accept=".png,.jpg,.jpeg">
         </div>
         <div class="file-selected" id="watermarkImageFileInfo"></div>
+        <div class="watermark-thumb-preview" id="watermarkThumbPreview">
+            <img id="watermarkThumbImg" alt="">
+        </div>
 
-        <div class="form-row" style="margin-top: 20px;">
-            <div class="form-group">
-                <label>{{ _('watermark_position') }}</label>
-                <select id="imagePosition">
-                    <option value="center">{{ _('pos_center') }}</option>
-                    <option value="top-left">{{ _('pos_top_left') }}</option>
-                    <option value="top-right">{{ _('pos_top_right') }}</option>
-                    <option value="bottom-left">{{ _('pos_bottom_left') }}</option>
-                    <option value="bottom-right">{{ _('pos_bottom_right') }}</option>
-                </select>
+        <!-- Preview layout: sol ayarlar, sag onizleme -->
+        <div class="preview-layout" id="imagePreviewLayout" style="display:none; margin-top: 20px;">
+            <div class="settings-panel">
+                <div class="form-group">
+                    <label>{{ _('watermark_position') }}</label>
+                    <div class="position-grid" id="imagePositionGrid">
+                        <button class="position-btn" data-pos="top-left" type="button"><span class="pos-icon">&#8598;</span>{{ _('pos_top_left') }}</button>
+                        <button class="position-btn" data-pos="top-center" type="button"><span class="pos-icon">&#8593;</span>{{ _('pos_top_center') }}</button>
+                        <button class="position-btn" data-pos="top-right" type="button"><span class="pos-icon">&#8599;</span>{{ _('pos_top_right') }}</button>
+                        <button class="position-btn" data-pos="bottom-left" type="button"><span class="pos-icon">&#8601;</span>{{ _('pos_bottom_left') }}</button>
+                        <button class="position-btn active" data-pos="center" type="button"><span class="pos-icon">&#11093;</span>{{ _('pos_center') }}</button>
+                        <button class="position-btn" data-pos="bottom-right" type="button"><span class="pos-icon">&#8600;</span>{{ _('pos_bottom_right') }}</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ _('watermark_opacity') }}: <span class="slider-value" id="imageOpacityValue">0.50</span></label>
+                    <div class="slider-row">
+                        <input type="range" id="imageOpacity" min="0.1" max="1.0" step="0.05" value="0.5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ _('watermark_scale') }}: <span class="slider-value" id="imageScaleValue">20%</span></label>
+                    <div class="slider-row">
+                        <input type="range" id="imageScale" min="0.05" max="1.0" step="0.05" value="0.2">
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="imageWatermarkBtn" disabled>{{ _('watermark_btn') }}</button>
             </div>
-            <div class="form-group">
-                <label>{{ _('watermark_opacity') }}: <span class="slider-value" id="imageOpacityValue">0.50</span></label>
-                <div class="slider-row">
-                    <input type="range" id="imageOpacity" min="0.1" max="1.0" step="0.05" value="0.5">
+
+            <div class="preview-panel">
+                <div class="preview-panel-title">{{ _('live_preview') }}</div>
+                <div class="preview-container" id="imagePreviewContainer">
+                    <div class="preview-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="1.5"/>
+                        </svg>
+                        <p>{{ _('preview_placeholder') }}</p>
+                    </div>
+                </div>
+                <div class="preview-nav" id="imagePreviewNav" style="display: none;">
+                    <button id="imgPrevPageBtn" disabled>&laquo; {{ _('prev_page') }}</button>
+                    <span id="imgPageInfo">{{ _('page_info') }}</span>
+                    <button id="imgNextPageBtn">{{ _('next_page') }} &raquo;</button>
                 </div>
             </div>
         </div>
-
-        <!-- Preview panel (shown when both PDF and image are loaded) -->
-        <div class="preview-panel" id="imagePreviewPanel" style="display:none; margin-top: 20px;">
-            <div class="preview-panel-title">{{ _('live_preview') }}</div>
-            <div class="preview-container" id="imagePreviewContainer">
-                <div class="preview-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="1.5"/>
-                    </svg>
-                    <p>{{ _('preview_placeholder') }}</p>
-                </div>
-            </div>
-        </div>
-
-        <button class="btn-primary" id="imageWatermarkBtn" disabled>{{ _('watermark_btn') }}</button>
     </div>
 
     <div class="upload-progress" id="uploadProgress">
@@ -249,6 +299,12 @@
     let imagePdfFile = null;
     let watermarkImageFile = null;
     let watermarkImageSrc = null;
+    let textPosition = 'center';
+    let imagePosition = 'center';
+    let textTotalPages = 1;
+    let textCurrentPage = 0;
+    let imageTotalPages = 1;
+    let imageCurrentPage = 0;
     const steps = initSteps(document.getElementById('stepIndicator'));
 
     // Elements
@@ -261,7 +317,7 @@
     const resultDiv = document.getElementById('result');
     const textPreviewLayout = document.getElementById('textPreviewLayout');
     const textPreviewContainer = document.getElementById('textPreviewContainer');
-    const imagePreviewPanel = document.getElementById('imagePreviewPanel');
+    const imagePreviewLayout = document.getElementById('imagePreviewLayout');
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 
     // Tabs
@@ -270,7 +326,26 @@
         document.querySelectorAll('.tab-content')
     );
 
-    // -- Text tab: Drop zone --
+    // ========== Position Grid Handlers ==========
+    document.querySelectorAll('#textPositionGrid .position-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            textPosition = btn.dataset.pos;
+            document.querySelectorAll('#textPositionGrid .position-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateLivePreview();
+        });
+    });
+
+    document.querySelectorAll('#imagePositionGrid .position-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            imagePosition = btn.dataset.pos;
+            document.querySelectorAll('#imagePositionGrid .position-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateImageWatermarkOverlay();
+        });
+    });
+
+    // ========== Text Tab: Drop zone ==========
     setupDropZone(textDropZone, textPdfInput, {
         accept: '.pdf',
         multiple: false,
@@ -280,11 +355,18 @@
             info.textContent = textPdfFile.name + ' (' + formatSize(textPdfFile.size) + ')';
             info.style.display = 'block';
 
-            // Onizleme yukle
             textPreviewLayout.style.display = 'grid';
+            textCurrentPage = 0;
             loadPreview(textPdfFile, textPreviewContainer, {
                 width: 400,
-                onLoad: () => { updateLivePreview(); }
+                onLoad: (data) => {
+                    textTotalPages = data.total_pages || 1;
+                    updateLivePreview();
+                    if (textTotalPages > 1) {
+                        document.getElementById('textPreviewNav').style.display = 'flex';
+                        document.getElementById('textPageInfo').textContent = `Sayfa 1/${textTotalPages}`;
+                    }
+                }
             });
 
             steps.setStep(1);
@@ -292,7 +374,7 @@
         }
     });
 
-    // -- Image tab: PDF drop zone --
+    // ========== Image Tab: PDF drop zone ==========
     setupDropZone(imageDropZone, imagePdfInput, {
         accept: '.pdf',
         multiple: false,
@@ -302,12 +384,13 @@
             info.textContent = imagePdfFile.name + ' (' + formatSize(imagePdfFile.size) + ')';
             info.style.display = 'block';
             steps.setStep(1);
+            imageCurrentPage = 0;
             updateImageBtn();
             tryShowImagePreview();
         }
     });
 
-    // -- Image tab: Watermark image drop zone --
+    // ========== Image Tab: Watermark image drop zone ==========
     setupDropZone(watermarkImgDropZone, watermarkImageInput, {
         accept: '.png,.jpg,.jpeg',
         multiple: false,
@@ -317,10 +400,14 @@
             info.textContent = watermarkImageFile.name + ' (' + formatSize(watermarkImageFile.size) + ')';
             info.style.display = 'block';
 
-            // Read image as data URL for preview overlay
             const reader = new FileReader();
             reader.onload = (e) => {
                 watermarkImageSrc = e.target.result;
+                // Thumbnail onizleme
+                const thumbPreview = document.getElementById('watermarkThumbPreview');
+                document.getElementById('watermarkThumbImg').src = watermarkImageSrc;
+                thumbPreview.style.display = 'block';
+
                 updateImageBtn();
                 tryShowImagePreview();
             };
@@ -330,10 +417,17 @@
 
     function tryShowImagePreview() {
         if (imagePdfFile && watermarkImageSrc) {
-            imagePreviewPanel.style.display = '';
+            imagePreviewLayout.style.display = 'grid';
             loadPreview(imagePdfFile, imagePreviewContainer, {
                 width: 400,
-                onLoad: () => { updateImageWatermarkOverlay(); }
+                onLoad: (data) => {
+                    imageTotalPages = data.total_pages || 1;
+                    updateImageWatermarkOverlay();
+                    if (imageTotalPages > 1) {
+                        document.getElementById('imagePreviewNav').style.display = 'flex';
+                        document.getElementById('imgPageInfo').textContent = `Sayfa 1/${imageTotalPages}`;
+                    }
+                }
             });
         }
     }
@@ -341,15 +435,16 @@
     function updateImageWatermarkOverlay() {
         if (!watermarkImageSrc) return;
         updateImageWatermarkPreview(imagePreviewContainer, watermarkImageSrc, {
-            position: document.getElementById('imagePosition').value,
-            opacity: parseFloat(document.getElementById('imageOpacity').value)
+            position: imagePosition,
+            opacity: parseFloat(document.getElementById('imageOpacity').value),
+            scale: parseFloat(document.getElementById('imageScale').value)
         });
     }
 
-    // Canli onizleme guncelleme
+    // ========== Text Preview ==========
     function updateLivePreview() {
         updateWatermarkPreview(textPreviewContainer, document.getElementById('watermarkText').value, {
-            position: document.getElementById('textPosition').value,
+            position: textPosition,
             fontSize: parseInt(document.getElementById('textFontSize').value),
             rotation: parseInt(document.getElementById('textRotation').value),
             color: document.getElementById('textColor').value,
@@ -357,12 +452,11 @@
         });
     }
 
-    // Tum input'lara dinleyici ekle - anlik onizleme
-    ['watermarkText', 'textPosition', 'textColor', 'textOpacity', 'textFontSize', 'textRotation'].forEach(id => {
+    // Text tab input listeners
+    ['watermarkText', 'textColor', 'textOpacity', 'textFontSize', 'textRotation'].forEach(id => {
         const el = document.getElementById(id);
         el.addEventListener('input', () => {
             updateLivePreview();
-            // Slider degerlerini guncelle
             if (id === 'textOpacity') document.getElementById('textOpacityValue').textContent = parseFloat(el.value).toFixed(2);
             if (id === 'textFontSize') document.getElementById('textFontSizeValue').textContent = el.value;
             if (id === 'textRotation') document.getElementById('textRotationValue').textContent = el.value;
@@ -377,10 +471,48 @@
         document.getElementById('imageOpacityValue').textContent = parseFloat(e.target.value).toFixed(2);
         updateImageWatermarkOverlay();
     });
-    document.getElementById('imagePosition').addEventListener('change', () => {
+    document.getElementById('imageScale').addEventListener('input', (e) => {
+        document.getElementById('imageScaleValue').textContent = Math.round(parseFloat(e.target.value) * 100) + '%';
         updateImageWatermarkOverlay();
     });
 
+    // ========== Page Navigation - Text ==========
+    document.getElementById('textPrevPageBtn').addEventListener('click', () => {
+        if (textCurrentPage > 0) { textCurrentPage--; navigateTextPreview(); }
+    });
+    document.getElementById('textNextPageBtn').addEventListener('click', () => {
+        if (textCurrentPage < textTotalPages - 1) { textCurrentPage++; navigateTextPreview(); }
+    });
+
+    function navigateTextPreview() {
+        document.getElementById('textPrevPageBtn').disabled = textCurrentPage === 0;
+        document.getElementById('textNextPageBtn').disabled = textCurrentPage >= textTotalPages - 1;
+        document.getElementById('textPageInfo').textContent = `Sayfa ${textCurrentPage + 1}/${textTotalPages}`;
+        loadPreview(textPdfFile, textPreviewContainer, {
+            page: textCurrentPage, width: 400,
+            onLoad: () => updateLivePreview()
+        });
+    }
+
+    // ========== Page Navigation - Image ==========
+    document.getElementById('imgPrevPageBtn').addEventListener('click', () => {
+        if (imageCurrentPage > 0) { imageCurrentPage--; navigateImagePreview(); }
+    });
+    document.getElementById('imgNextPageBtn').addEventListener('click', () => {
+        if (imageCurrentPage < imageTotalPages - 1) { imageCurrentPage++; navigateImagePreview(); }
+    });
+
+    function navigateImagePreview() {
+        document.getElementById('imgPrevPageBtn').disabled = imageCurrentPage === 0;
+        document.getElementById('imgNextPageBtn').disabled = imageCurrentPage >= imageTotalPages - 1;
+        document.getElementById('imgPageInfo').textContent = `Sayfa ${imageCurrentPage + 1}/${imageTotalPages}`;
+        loadPreview(imagePdfFile, imagePreviewContainer, {
+            page: imageCurrentPage, width: 400,
+            onLoad: () => updateImageWatermarkOverlay()
+        });
+    }
+
+    // ========== Button States ==========
     function updateTextBtn() {
         document.getElementById('textWatermarkBtn').disabled =
             !textPdfFile || !document.getElementById('watermarkText').value.trim();
@@ -391,7 +523,7 @@
             !imagePdfFile || !watermarkImageFile;
     }
 
-    // -- Text watermark submit --
+    // ========== Text watermark submit ==========
     document.getElementById('textWatermarkBtn').addEventListener('click', async () => {
         const btn = document.getElementById('textWatermarkBtn');
         btn.disabled = true;
@@ -401,7 +533,7 @@
         const formData = new FormData();
         formData.append('pdf_file', textPdfFile);
         formData.append('text', document.getElementById('watermarkText').value);
-        formData.append('position', document.getElementById('textPosition').value);
+        formData.append('position', textPosition);
         formData.append('opacity', document.getElementById('textOpacity').value);
         formData.append('font_size', document.getElementById('textFontSize').value);
         formData.append('rotation', document.getElementById('textRotation').value);
@@ -442,7 +574,7 @@
         }
     });
 
-    // -- Image watermark submit --
+    // ========== Image watermark submit ==========
     document.getElementById('imageWatermarkBtn').addEventListener('click', async () => {
         const btn = document.getElementById('imageWatermarkBtn');
         btn.disabled = true;
@@ -452,8 +584,9 @@
         const formData = new FormData();
         formData.append('pdf_file', imagePdfFile);
         formData.append('image_file', watermarkImageFile);
-        formData.append('position', document.getElementById('imagePosition').value);
+        formData.append('position', imagePosition);
         formData.append('opacity', document.getElementById('imageOpacity').value);
+        formData.append('scale', document.getElementById('imageScale').value);
 
         try {
             const data = await uploadWithProgress('/api/watermark/image', formData, {

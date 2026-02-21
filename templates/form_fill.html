@@ -189,8 +189,8 @@
                     formFields.forEach((f, i) => {
                         let inputHtml;
                         if (f.is_checkbox) {
-                            const checked = f.value === 'Yes' ? 'checked' : '';
-                            inputHtml = `<input type="checkbox" class="field-input" data-field="${f.name}" ${checked}>`;
+                            const checked = f.value === 'Yes' || f.value === (f.on_value || 'Yes') ? 'checked' : '';
+                            inputHtml = `<input type="checkbox" class="field-input" data-field="${f.name}" data-on-value="${f.on_value || 'Yes'}" ${checked}>`;
                         } else if (f.choices && f.choices.length > 0) {
                             inputHtml = `<select class="field-input" data-field="${f.name}">
                                 ${f.choices.map(c => `<option value="${c}" ${c === f.value ? 'selected' : ''}>${c}</option>`).join('')}
@@ -234,7 +234,7 @@
         document.querySelectorAll('.field-input').forEach(input => {
             const name = input.dataset.field;
             if (input.type === 'checkbox') {
-                fields[name] = input.checked ? 'true' : 'false';
+                fields[name] = input.checked ? (input.dataset.onValue || 'true') : 'false';
             } else {
                 fields[name] = input.value;
             }

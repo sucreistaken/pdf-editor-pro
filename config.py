@@ -55,6 +55,47 @@ OUTPUT_FOLDER = os.environ.get('OUTPUT_FOLDER', 'outputs')
 # Poppler (pdf2image icin)
 POPPLER_PATH = _find_poppler()
 
+
+def _find_tesseract():
+    """Tesseract binary yolunu otomatik bul."""
+    import shutil as _shutil
+    env_path = os.environ.get('TESSERACT_PATH')
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    # Sistem PATH'inde ara
+    t = _shutil.which('tesseract')
+    if t:
+        return t
+    # Windows varsayilan yollar
+    for p in [r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+              r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe']:
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _find_libreoffice():
+    """LibreOffice binary yolunu otomatik bul."""
+    import shutil as _shutil
+    env_path = os.environ.get('LIBREOFFICE_PATH')
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    lo = _shutil.which('libreoffice') or _shutil.which('soffice')
+    if lo:
+        return lo
+    for p in [r'C:\Program Files\LibreOffice\program\soffice.exe',
+              r'C:\Program Files (x86)\LibreOffice\program\soffice.exe']:
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+# Tesseract (OCR icin)
+TESSERACT_PATH = _find_tesseract()
+
+# LibreOffice (Office -> PDF icin)
+LIBREOFFICE_PATH = _find_libreoffice()
+
 # Dosya temizleme
 CLEANUP_MAX_AGE_HOURS = int(os.environ.get('CLEANUP_MAX_AGE_HOURS', 1))
 

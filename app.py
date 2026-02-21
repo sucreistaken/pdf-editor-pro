@@ -45,6 +45,11 @@ from tools.pdf_to_excel import pdf_to_excel
 from tools.pdf_form_fill import get_form_fields, fill_form
 from tools.pdf_to_word import pdf_to_word
 from tools.pdf_to_pdfa import convert_to_pdfa
+from tools.pdf_ocr import ocr_pdf
+from tools.pdf_sign import add_signature
+from tools.pdf_redact import redact_areas, redact_text
+from tools.pdf_resize import resize_pdf
+from tools.office_to_pdf import office_to_pdf
 
 # Logging setup
 from logging.handlers import RotatingFileHandler
@@ -440,6 +445,7 @@ TOOL_SLUGS = [
     'extract-text', 'extract-images', 'img-to-pdf', 'pdf-to-image',
     'html-to-pdf', 'reorder', 'repair', 'metadata', 'numbering',
     'crop', 'compare', 'pdf-to-excel', 'form-fill', 'pdf-to-word', 'pdf-to-pdfa',
+    'ocr', 'sign', 'redact', 'resize', 'office-to-pdf',
 ]
 
 @app.route('/logo-removal')
@@ -624,6 +630,41 @@ def pdf_to_pdfa_page(lang):
         return redirect(f'/{DEFAULT_LANGUAGE}/pdf-to-pdfa', code=302)
     g.lang = lang
     return _tool_render('pdf-to-pdfa', 'pdf_to_pdfa.html')
+
+@app.route('/<lang>/ocr')
+def ocr_page(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        return redirect(f'/{DEFAULT_LANGUAGE}/ocr', code=302)
+    g.lang = lang
+    return _tool_render('ocr', 'ocr.html')
+
+@app.route('/<lang>/sign')
+def sign_page(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        return redirect(f'/{DEFAULT_LANGUAGE}/sign', code=302)
+    g.lang = lang
+    return _tool_render('sign', 'sign.html')
+
+@app.route('/<lang>/redact')
+def redact_page(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        return redirect(f'/{DEFAULT_LANGUAGE}/redact', code=302)
+    g.lang = lang
+    return _tool_render('redact', 'redact.html')
+
+@app.route('/<lang>/resize')
+def resize_page(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        return redirect(f'/{DEFAULT_LANGUAGE}/resize', code=302)
+    g.lang = lang
+    return _tool_render('resize', 'resize.html')
+
+@app.route('/<lang>/office-to-pdf')
+def office_to_pdf_page(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        return redirect(f'/{DEFAULT_LANGUAGE}/office-to-pdf', code=302)
+    g.lang = lang
+    return _tool_render('office-to-pdf', 'office_to_pdf.html')
 
 
 # ==================== BLOG ROUTES ====================
@@ -1110,7 +1151,7 @@ def api_watermark_text():
     opacity = float(request.form.get('opacity', 0.3))
     font_size = int(request.form.get('font_size', 50))
     rotation = int(request.form.get('rotation', 0))
-    color = request.form.get('color', '#808080')
+    color = request.form.get('color', '#000000')
 
     if not text:
         return api_error('Filigran metni gerekli!')
@@ -1167,7 +1208,8 @@ def api_watermark_image():
     output_filename = f"{job_id}_watermarked.pdf"
     output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
 
-    result = add_image_watermark(input_path, output_path, image_path, position=position, opacity=opacity)
+    scale = float(request.form.get('scale', 0.2))
+    result = add_image_watermark(input_path, output_path, image_path, position=position, opacity=opacity, scale=scale)
 
     if os.path.exists(input_path):
         os.remove(input_path)
@@ -1936,6 +1978,249 @@ def api_pdf_to_pdfa():
             )
         else:
             return api_error(result.get('error', 'Dönüştürme hatası'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+# ==================== OCR API ====================
+@app.route('/api/ocr', methods=['POST'])
+@rate_limit('ocr')
+def api_ocr():
+    if 'pdf_file' not in request.files:
+        return api_error('PDF dosyasi gerekli!')
+
+    pdf_file = request.files['pdf_file']
+    language = request.form.get('language', 'tur+eng')
+
+    if language not in ('tur', 'eng', 'tur+eng'):
+        language = 'tur+eng'
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{pdf_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_file.save(input_path)
+
+    output_filename = f"{job_id}_ocr.txt"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = ocr_pdf(input_path, output_path, language=language)
+
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'text': result['text'],
+                'page_count': result['page_count'],
+                'char_count': result['char_count'],
+                'word_count': result['word_count'],
+                'download_url': f'/download/{output_filename}?name=ocr_metin.txt'
+            })
+        else:
+            return api_error(result.get('error', 'OCR hatasi'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+# ==================== SIGN API ====================
+@app.route('/api/sign', methods=['POST'])
+@rate_limit('sign')
+def api_sign():
+    if 'pdf_file' not in request.files:
+        return api_error('PDF dosyasi gerekli!')
+
+    pdf_file = request.files['pdf_file']
+    signature_data = request.form.get('signature_data', '')
+    page_num = request.form.get('page', 'all')
+    x = float(request.form.get('x', 100))
+    y = float(request.form.get('y', 100))
+    width = float(request.form.get('width', 200))
+    height = float(request.form.get('height', 80))
+
+    if not signature_data:
+        return api_error('Imza verisi gerekli!')
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{pdf_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_file.save(input_path)
+
+    output_filename = f"{job_id}_signed.pdf"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = add_signature(
+            input_path, output_path,
+            image_data=signature_data,
+            page_num=page_num, x=x, y=y, width=width, height=height
+        )
+
+        if result['success']:
+            return api_success(
+                download_url=f'/download/{output_filename}?name=imzali.pdf',
+                filename='imzali.pdf',
+                message=result.get('message', ''),
+                page_count=result.get('page_count', 0)
+            )
+        else:
+            return api_error(result.get('error', 'Imzalama hatasi'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+# ==================== REDACT API ====================
+@app.route('/api/redact', methods=['POST'])
+@rate_limit('redact')
+def api_redact():
+    if 'pdf_file' not in request.files:
+        return api_error('PDF dosyasi gerekli!')
+
+    pdf_file = request.files['pdf_file']
+    redactions_json = request.form.get('redactions', '[]')
+
+    try:
+        redactions = json.loads(redactions_json)
+    except (json.JSONDecodeError, TypeError):
+        return api_error('Gecersiz karalama verisi!')
+
+    if not redactions:
+        return api_error('En az bir karalama alani gerekli!')
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{pdf_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_file.save(input_path)
+
+    output_filename = f"{job_id}_redacted.pdf"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = redact_areas(input_path, output_path, redactions)
+
+        if result['success']:
+            return api_success(
+                download_url=f'/download/{output_filename}?name=karalanmis.pdf',
+                filename='karalanmis.pdf',
+                message=result.get('message', ''),
+                redaction_count=result.get('redaction_count', 0)
+            )
+        else:
+            return api_error(result.get('error', 'Karalama hatasi'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+@app.route('/api/redact-text', methods=['POST'])
+@rate_limit('redact')
+def api_redact_text():
+    if 'pdf_file' not in request.files:
+        return api_error('PDF dosyasi gerekli!')
+
+    pdf_file = request.files['pdf_file']
+    search_text = request.form.get('search_text', '').strip()
+
+    if not search_text:
+        return api_error('Aranacak metin gerekli!')
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{pdf_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_file.save(input_path)
+
+    output_filename = f"{job_id}_redacted.pdf"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = redact_text(input_path, output_path, search_text)
+
+        if result['success']:
+            return api_success(
+                download_url=f'/download/{output_filename}?name=karalanmis.pdf',
+                filename='karalanmis.pdf',
+                message=result.get('message', ''),
+                redaction_count=result.get('redaction_count', 0)
+            )
+        else:
+            return api_error(result.get('error', 'Metin karalama hatasi'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+# ==================== RESIZE API ====================
+@app.route('/api/resize', methods=['POST'])
+@rate_limit('resize')
+def api_resize():
+    if 'pdf_file' not in request.files:
+        return api_error('PDF dosyasi gerekli!')
+
+    pdf_file = request.files['pdf_file']
+    target_size = request.form.get('target_size', 'a4')
+    mode = request.form.get('mode', 'fit')
+
+    if mode not in ('fit', 'crop', 'expand'):
+        mode = 'fit'
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{pdf_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_file.save(input_path)
+
+    output_filename = f"{job_id}_resized.pdf"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = resize_pdf(input_path, output_path, target_size, mode=mode)
+
+        if result['success']:
+            return api_success(
+                download_url=f'/download/{output_filename}?name=boyutlandirilmis.pdf',
+                filename='boyutlandirilmis.pdf',
+                message=result.get('message', ''),
+                page_count=result.get('page_count', 0),
+                original_size=result.get('original_size', ''),
+                new_size=result.get('new_size', '')
+            )
+        else:
+            return api_error(result.get('error', 'Boyut degistirme hatasi'))
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+# ==================== OFFICE TO PDF API ====================
+@app.route('/api/office-to-pdf', methods=['POST'])
+@rate_limit('office_to_pdf')
+def api_office_to_pdf():
+    if 'office_file' not in request.files:
+        return api_error('Dosya gerekli!')
+
+    office_file = request.files['office_file']
+    ext = os.path.splitext(office_file.filename)[1].lower()
+    allowed_ext = {'.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt', '.odt', '.ods', '.odp'}
+    if ext not in allowed_ext:
+        return api_error('Desteklenmeyen dosya formati!')
+
+    job_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(f"{job_id}_{office_file.filename}")
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    office_file.save(input_path)
+
+    output_filename = f"{job_id}_converted.pdf"
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+
+    try:
+        result = office_to_pdf(input_path, output_path)
+
+        if result['success']:
+            base_name = os.path.splitext(office_file.filename)[0]
+            dl_name = f"{base_name}.pdf"
+            return api_success(
+                download_url=f'/download/{output_filename}?name={dl_name}',
+                filename=dl_name,
+                message=result.get('message', ''),
+                file_type=result.get('file_type', ''),
+                page_count=result.get('page_count', 0)
+            )
+        else:
+            return api_error(result.get('error', 'Donusturme hatasi'))
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)

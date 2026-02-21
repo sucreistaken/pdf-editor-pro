@@ -11,6 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     shared-mime-info \
     libgl1 \
+    tesseract-ocr \
+    tesseract-ocr-tur \
+    libreoffice-writer \
+    libreoffice-calc \
+    libreoffice-impress \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

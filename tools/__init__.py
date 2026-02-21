@@ -24,4 +24,9 @@ __all__ = [
     'pdf_form_fill',
     'pdf_to_word',
     'pdf_to_pdfa',
+    'pdf_ocr',
+    'pdf_sign',
+    'pdf_redact',
+    'pdf_resize',
+    'office_to_pdf',
 ]

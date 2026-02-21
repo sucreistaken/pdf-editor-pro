@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if seo %}{{ seo.title }}{% else %}{{ _('sign_title') }} - {{ site_name }}{% endif %}{% endblock %}
+
+{% block header_icon %}✍️{% endblock %}
+{% block header_title %}{{ _('sign_title') }}{% endblock %}
+{% block header_subtitle %}{{ _('sign_subtitle') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #7c2d12 0%, #b45309 100%);
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    .file-info-bar {
+        margin-top: 20px; padding: 16px 20px;
+        background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 14px;
+        display: none; align-items: center; justify-content: space-between;
+    }
+    .file-info-bar.show { display: flex; }
+    .file-info-bar .file-name { font-weight: 600; font-size: 0.95rem; }
+    .file-info-bar .file-size { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+    .file-info-bar .change-btn {
+        padding: 6px 14px; background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2); color: white;
+        border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    }
+
+    /* Signature section */
+    .sign-section { display: none; margin: 20px 0; }
+    .sign-section.show { display: block; }
+
+    /* Tabs */
+    .sign-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .sign-tab {
+        flex: 1; padding: 12px; background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        color: rgba(255,255,255,0.6); font-weight: 700; font-size: 0.9rem;
+        cursor: pointer; text-align: center; transition: all 0.3s;
+    }
+    .sign-tab.active {
+        background: rgba(124,45,18,0.4); border-color: rgba(180,83,9,0.8); color: white;
+    }
+
+    /* Canvas */
+    .canvas-container {
+        background: white; border-radius: 14px; overflow: hidden;
+        margin-bottom: 12px; position: relative;
+    }
+    .canvas-container canvas {
+        display: block; width: 100%; height: 200px; cursor: crosshair;
+    }
+    .canvas-actions {
+        display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .canvas-action-btn {
+        padding: 8px 16px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+        color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+        transition: all 0.2s;
+    }
+    .canvas-action-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* Pen settings */
+    .pen-settings {
+        display: flex; gap: 16px; align-items: center; margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+    .pen-settings label { font-size: 0.85rem; color: rgba(255,255,255,0.7); font-weight: 600; }
+    .pen-settings input[type="range"] { width: 100px; }
+    .pen-settings input[type="color"] {
+        width: 32px; height: 32px; border: none; border-radius: 8px;
+        cursor: pointer; background: none;
+    }
+
+    /* Image upload */
+    .img-upload-section { display: none; }
+    .img-upload-section.show { display: block; }
+    .img-drop-zone {
+        padding: 30px; text-align: center;
+        background: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.2);
+        border-radius: 14px; cursor: pointer; transition: all 0.3s;
+    }
+    .img-drop-zone:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
+    .img-preview { max-width: 200px; margin: 12px auto; display: none; border-radius: 8px; }
+
+    /* Page selector */
+    .page-selector {
+        margin: 16px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .page-selector label { font-weight: 600; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
+    .page-selector select {
+        padding: 10px 14px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+        color: white; font-size: 0.9rem; outline: none;
+    }
+    .page-selector select option { background: #333; color: white; }
+
+    /* Position preview */
+    .position-section { margin: 16px 0; }
+    .position-section .config-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: rgba(255,255,255,0.8); }
+    .position-inputs {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .position-inputs label { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; display: block; }
+    .position-inputs input {
+        width: 100%; padding: 10px; background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+        color: white; font-size: 0.9rem; outline: none;
+    }
+
+    .loading-indicator { display: none; text-align: center; padding: 30px; margin-top: 20px; }
+    .loading-indicator.show { display: block; }
+    .loading-indicator .spinner {
+        width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15);
+        border-top-color: #b45309; border-radius: 50%;
+        animation: spin 0.8s linear infinite; margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+        .position-inputs { grid-template-columns: 1fr; }
+        .pen-settings { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator" id="stepIndicator">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">{{ _('step_upload') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">{{ _('sign_step_create') }}</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">{{ _('step_download') }}</span></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div id="uploadSection">
+        <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;">
+                <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>{{ _('upload_file') }}</h3>
+            <p>{{ _('sign_subtitle') }}</p>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+        <div class="file-info-bar" id="fileInfoBar">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <button class="change-btn" onclick="resetUpload()">{{ _('remove') }}</button>
+        </div>
+    </div>
+
+    <div class="sign-section" id="signSection">
+        <div class="sign-tabs">
+            <div class="sign-tab active" onclick="switchSignTab('draw')">{{ _('sign_tab_draw') }}</div>
+            <div class="sign-tab" onclick="switchSignTab('upload')">{{ _('sign_tab_upload') }}</div>
+        </div>
+
+        <!-- Draw tab -->
+        <div id="drawSection">
+            <div class="pen-settings">
+                <label>{{ _('sign_pen_size') }}: <input type="range" id="penSize" min="1" max="8" value="3"></label>
+                <label>{{ _('sign_pen_color') }}: <input type="color" id="penColor" value="#000000"></label>
+            </div>
+            <div class="canvas-container">
+                <canvas id="signCanvas"></canvas>
+            </div>
+            <div class="canvas-actions">
+                <button class="canvas-action-btn" onclick="clearCanvas()">{{ _('reset') }}</button>
+            </div>
+        </div>
+
+        <!-- Upload tab -->
+        <div class="img-upload-section" id="imgUploadSection">
+            <div class="img-drop-zone" id="imgDropZone" onclick="document.getElementById('imgFileInput').click()">
+                <p>{{ _('sign_upload_image') }}</p>
+                <input type="file" id="imgFileInput" accept="image/*" style="display:none">
+            </div>
+            <img id="imgPreview" class="img-preview">
+        </div>
+
+        <!-- Page & position -->
+        <div class="page-selector">
+            <label>{{ _('sign_page') }}:</label>
+            <select id="pageSelect">
+                <option value="all">{{ _('sign_all_pages') }}</option>
+                <option value="0">{{ _('page') }} 1</option>
+            </select>
+        </div>
+
+        <div class="position-section">
+            <div class="config-label">{{ _('sign_position') }}</div>
+            <div class="position-inputs">
+                <div><label>X (pt)</label><input type="number" id="posX" value="350" min="0"></div>
+                <div><label>Y (pt)</label><input type="number" id="posY" value="700" min="0"></div>
+                <div><label>{{ _('sign_width') }} (pt)</label><input type="number" id="sigWidth" value="200" min="20"></div>
+                <div><label>{{ _('sign_height') }} (pt)</label><input type="number" id="sigHeight" value="80" min="20"></div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-primary" id="signBtn" disabled>{{ _('sign_btn') }}</button>
+
+    <div class="loading-indicator" id="loadingIndicator">
+        <div class="spinner"></div>
+        <span>{{ _('sign_btn_loading') }}</span>
+    </div>
+
+    <div class="result" id="resultSection"></div>
+</div>
+{% endblock %}
+
+{% block related_tools %}
+<div id="relatedToolsContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const steps = initSteps(document.getElementById('stepIndicator'));
+    let selectedFile = null;
+    let signatureData = null;
+    let currentSignTab = 'draw';
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const signBtn = document.getElementById('signBtn');
+
+    // Canvas setup
+    const signCanvas = document.getElementById('signCanvas');
+    const signCtx = signCanvas.getContext('2d');
+    let drawing = false;
+
+    function initCanvas() {
+        const container = signCanvas.parentElement;
+        signCanvas.width = container.offsetWidth;
+        signCanvas.height = 200;
+        signCtx.fillStyle = 'white';
+        signCtx.fillRect(0, 0, signCanvas.width, signCanvas.height);
+        signCtx.lineCap = 'round';
+        signCtx.lineJoin = 'round';
+    }
+
+    window.addEventListener('resize', initCanvas);
+    setTimeout(initCanvas, 100);
+
+    signCanvas.addEventListener('mousedown', (e) => {
+        drawing = true;
+        const rect = signCanvas.getBoundingClientRect();
+        signCtx.beginPath();
+        signCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    });
+    signCanvas.addEventListener('mousemove', (e) => {
+        if (!drawing) return;
+        const rect = signCanvas.getBoundingClientRect();
+        signCtx.strokeStyle = document.getElementById('penColor').value;
+        signCtx.lineWidth = document.getElementById('penSize').value;
+        signCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        signCtx.stroke();
+    });
+    signCanvas.addEventListener('mouseup', () => { drawing = false; });
+    signCanvas.addEventListener('mouseleave', () => { drawing = false; });
+
+    // Touch support
+    signCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        drawing = true;
+        const rect = signCanvas.getBoundingClientRect();
+        const t = e.touches[0];
+        signCtx.beginPath();
+        signCtx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
+    });
+    signCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!drawing) return;
+        const rect = signCanvas.getBoundingClientRect();
+        const t = e.touches[0];
+        signCtx.strokeStyle = document.getElementById('penColor').value;
+        signCtx.lineWidth = document.getElementById('penSize').value;
+        signCtx.lineTo(t.clientX - rect.left, t.clientY - rect.top);
+        signCtx.stroke();
+    });
+    signCanvas.addEventListener('touchend', () => { drawing = false; });
+
+    function clearCanvas() {
+        signCtx.fillStyle = 'white';
+        signCtx.fillRect(0, 0, signCanvas.width, signCanvas.height);
+    }
+
+    // File handling
+    setupDropZone(dropZone, fileInput, {
+        accept: '.pdf', multiple: false,
+        onFiles: (files) => handleFile(files[0])
+    });
+
+    function handleFile(file) {
+        if (!validatePDF(file)) return;
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileInfoBar').classList.add('show');
+        document.getElementById('signSection').classList.add('show');
+        dropZone.style.display = 'none';
+        signBtn.disabled = false;
+        steps.setStep(1);
+        initCanvas();
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        signatureData = null;
+        document.getElementById('fileInfoBar').classList.remove('show');
+        document.getElementById('signSection').classList.remove('show');
+        dropZone.style.display = '';
+        signBtn.disabled = true;
+        document.getElementById('resultSection').className = 'result';
+        document.getElementById('loadingIndicator').classList.remove('show');
+        fileInput.value = '';
+        clearCanvas();
+    }
+
+    function switchSignTab(tab) {
+        currentSignTab = tab;
+        document.querySelectorAll('.sign-tab').forEach((t, i) => {
+            t.classList.toggle('active', (tab === 'draw' && i === 0) || (tab === 'upload' && i === 1));
+        });
+        document.getElementById('drawSection').style.display = tab === 'draw' ? '' : 'none';
+        document.getElementById('imgUploadSection').classList.toggle('show', tab === 'upload');
+    }
+
+    // Image upload
+    document.getElementById('imgFileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            signatureData = ev.target.result;
+            const preview = document.getElementById('imgPreview');
+            preview.src = signatureData;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Submit
+    signBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        // Get signature data
+        let sigData;
+        if (currentSignTab === 'draw') {
+            sigData = signCanvas.toDataURL('image/png');
+        } else {
+            sigData = signatureData;
+            if (!sigData) {
+                showToast(__('sign_no_signature'), 'error');
+                return;
+            }
+        }
+
+        signBtn.disabled = true;
+        signBtn.textContent = __('sign_btn_loading');
+        document.getElementById('resultSection').className = 'result';
+        document.getElementById('loadingIndicator').classList.add('show');
+
+        const formData = new FormData();
+        formData.append('pdf_file', selectedFile);
+        formData.append('signature_data', sigData);
+        formData.append('page', document.getElementById('pageSelect').value);
+        formData.append('x', document.getElementById('posX').value);
+        formData.append('y', document.getElementById('posY').value);
+        formData.append('width', document.getElementById('sigWidth').value);
+        formData.append('height', document.getElementById('sigHeight').value);
+
+        try {
+            const data = await uploadWithProgress('/api/sign', formData);
+            document.getElementById('loadingIndicator').classList.remove('show');
+
+            if (data.success) {
+                const resultDiv = document.getElementById('resultSection');
+                resultDiv.className = 'result success show';
+                resultDiv.innerHTML = `
+                    <h3>${__('sign_complete')}</h3>
+                    <p>${data.message || ''}</p>
+                    <a href="${data.download_url}" class="btn-primary" style="display:inline-block;margin-top:12px;text-decoration:none;">${__('download')}</a>
+                `;
+                resultDiv.style.display = 'block';
+                showToast(__('sign_complete'), 'success');
+                steps.setStep(2);
+                showRelatedTools(document.getElementById('relatedToolsContainer'), 'sign');
+            } else {
+                throw new Error(data.error || __('error'));
+            }
+        } catch (error) {
+            document.getElementById('loadingIndicator').classList.remove('show');
+            const resultDiv = document.getElementById('resultSection');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = `<h3>${__('error')}</h3><p>${error.message}</p>`;
+            resultDiv.style.display = 'block';
+            showToast(error.message, 'error');
+        } finally {
+            signBtn.disabled = false;
+            signBtn.textContent = __('sign_btn');
+        }
+    });
+</script>
+{% endblock %}

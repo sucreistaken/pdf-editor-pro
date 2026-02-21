@@ -1,6 +1,7 @@
 """
 PDF Form Fill Tool - PDF form alanlarini tespit et ve doldur
 """
+import re
 import fitz  # PyMuPDF
 import logging
 
@@ -39,6 +40,7 @@ def get_form_fields(input_path):
                 # Checkbox/radio icin secenekleri al
                 if widget.field_type in (2, 5):  # Btn (checkbox/radio)
                     field_info['is_checkbox'] = True
+                    field_info['on_value'] = _get_checkbox_on_value(doc, widget)
 
                 # Combobox/listbox icin secenekleri al
                 if widget.field_type in (3, 4):  # Ch (choice)
@@ -92,7 +94,9 @@ def fill_form(input_path, output_path, field_data, flatten=True):
                     value = field_data[field_name]
 
                     if widget.field_type in (2, 5):  # Checkbox/radio
-                        widget.field_value = 'Yes' if value in ('true', 'True', True, '1', 'Yes') else 'Off'
+                        on_value = _get_checkbox_on_value(doc, widget)
+                        is_checked = value in ('true', 'True', True, '1', 'Yes', on_value)
+                        widget.field_value = on_value if is_checked else 'Off'
                     else:
                         widget.field_value = str(value)
 
@@ -100,10 +104,20 @@ def fill_form(input_path, output_path, field_data, flatten=True):
                     filled_count += 1
 
         if flatten:
-            # Tum widget'lari icerige yazdir (annotation kaldirmadan)
             for page in doc:
-                # Need to re-iterate after first pass updates
-                pass
+                # Widget annotation'larini topla
+                annot = page.first_annot
+                widget_annots = []
+                while annot:
+                    if annot.type[0] == 20:  # PDF_ANNOT_WIDGET
+                        widget_annots.append(annot)
+                    annot = annot.next
+                # Widget'lari sil (gorunumleri sayfa iceriginde kalir)
+                for wa in widget_annots:
+                    try:
+                        page.delete_annot(wa)
+                    except Exception:
+                        pass
 
         doc.save(output_path, garbage=4, deflate=True)
 
@@ -120,6 +134,21 @@ def fill_form(input_path, output_path, field_data, flatten=True):
     finally:
         if doc:
             doc.close()
+
+
+def _get_checkbox_on_value(doc, widget):
+    """Widget'in gercek on-state degerini tespit et (Yes, 1, Checked vs.)"""
+    try:
+        xref = widget.xref
+        ap_text = doc.xref_get_key(xref, "AP/N")
+        if ap_text and ap_text[0] == "dict":
+            states = re.findall(r'/(\w+)', ap_text[1])
+            for s in states:
+                if s != 'Off':
+                    return s
+    except Exception:
+        pass
+    return 'Yes'
 
 
 def _widget_type_name(type_id):

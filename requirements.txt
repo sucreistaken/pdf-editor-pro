@@ -32,6 +32,9 @@ openpyxl==3.1.2
 # PDF to Word
 pdf2docx==0.5.8
 
+# OCR
+pytesseract==0.3.10
+
 # Configuration
 python-dotenv==1.0.1
 

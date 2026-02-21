@@ -28,6 +28,11 @@ TOOLS = {
     'form-fill': {'slug': 'form-fill', 'icon': '&#128221;', 'category': 'edit', 'tier': 'limited_free'},
     'pdf-to-word': {'slug': 'pdf-to-word', 'icon': '&#128196;', 'category': 'convert', 'tier': 'limited_free'},
     'pdf-to-pdfa': {'slug': 'pdf-to-pdfa', 'icon': '&#128196;', 'category': 'convert', 'tier': 'limited_free'},
+    'ocr': {'slug': 'ocr', 'icon': '&#128269;', 'category': 'extract', 'tier': 'limited_free'},
+    'sign': {'slug': 'sign', 'icon': '&#9997;', 'category': 'security', 'tier': 'limited_free'},
+    'redact': {'slug': 'redact', 'icon': '&#128275;', 'category': 'security', 'tier': 'limited_free'},
+    'resize': {'slug': 'resize', 'icon': '&#128208;', 'category': 'edit', 'tier': 'limited_free'},
+    'office-to-pdf': {'slug': 'office-to-pdf', 'icon': '&#128196;', 'category': 'convert', 'tier': 'limited_free'},
 }
 
 # Her arac icin SEO verileri (2 dil)
@@ -570,16 +575,136 @@ TOOL_SEO = {
             ]
         }
     },
+    'ocr': {
+        'tr': {
+            'title': 'PDF OCR Metin Tanima - Ucretsiz Online | PDFEdit',
+            'description': 'Taranmis PDF dosyalarindan metin cikarin. Turkce ve Ingilizce OCR destegi ile ucretsiz online PDF metin tanima araci.',
+            'keywords': 'pdf ocr, metin tanima, taranmis pdf, pdf text recognition, turkce ocr, pdf yaziya cevir',
+            'h1': 'PDF OCR - Metin Tanima',
+            'subtitle': 'Taranmis PDF dosyalarindan metin cikarin',
+            'faq': [
+                {'q': 'PDF OCR nedir?', 'a': 'OCR (Optik Karakter Tanima) taranmis belgelerdeki metni dijital metne donusturur. Taranmis PDF\'lerdeki yazilari kopyalanabilir hale getirir.'},
+                {'q': 'Hangi diller destekleniyor?', 'a': 'Turkce ve Ingilizce dil destegi mevcuttur. Her iki dili ayni anda da kullanabilirsiniz.'},
+            ]
+        },
+        'en': {
+            'title': 'PDF OCR Text Recognition - Free Online | PDFEdit',
+            'description': 'Extract text from scanned PDF files. Free online PDF OCR tool with Turkish and English language support.',
+            'keywords': 'pdf ocr, text recognition, scanned pdf, optical character recognition, extract text ocr',
+            'h1': 'PDF OCR - Text Recognition',
+            'subtitle': 'Extract text from scanned PDF files',
+            'faq': [
+                {'q': 'What is PDF OCR?', 'a': 'OCR (Optical Character Recognition) converts text in scanned documents to digital text, making it copyable and searchable.'},
+                {'q': 'Which languages are supported?', 'a': 'Turkish and English language support is available. You can use both languages simultaneously.'},
+            ]
+        }
+    },
+    'sign': {
+        'tr': {
+            'title': 'PDF Imzalama - Ucretsiz Online | PDFEdit',
+            'description': 'PDF dosyalariniza el yazisi imza ekleyin. Canvas ile cizim veya gorsel yukleme destegi. Ucretsiz online PDF imzalama araci.',
+            'keywords': 'pdf imzalama, pdf imza ekle, e-imza, dijital imza, pdf sign, el yazisi imza',
+            'h1': 'PDF Imzalama',
+            'subtitle': 'PDF dosyalariniza el yazisi imza ekleyin',
+            'faq': [
+                {'q': 'PDF\'e nasil imza eklerim?', 'a': 'PDF dosyanizi yukleyin, imzanizi cizin veya gorsel olarak yukleyin, konumu ayarlayin ve "Imzala" butonuna basin.'},
+                {'q': 'Imza tum sayfalara eklenebilir mi?', 'a': 'Evet, tek bir sayfaya veya tum sayfalara imza ekleyebilirsiniz.'},
+            ]
+        },
+        'en': {
+            'title': 'Sign PDF - Free Online | PDFEdit',
+            'description': 'Add handwritten signatures to PDF files. Draw on canvas or upload image. Free online PDF signing tool.',
+            'keywords': 'sign pdf, add signature to pdf, e-signature, digital signature, pdf signer, handwritten signature',
+            'h1': 'Sign PDF',
+            'subtitle': 'Add handwritten signatures to your PDF files',
+            'faq': [
+                {'q': 'How do I add a signature to a PDF?', 'a': 'Upload your PDF, draw your signature or upload an image, set the position, and click "Sign".'},
+                {'q': 'Can I add a signature to all pages?', 'a': 'Yes, you can add a signature to a single page or all pages.'},
+            ]
+        }
+    },
+    'redact': {
+        'tr': {
+            'title': 'PDF Karalama (Redact) - Ucretsiz Online | PDFEdit',
+            'description': 'PDF icerigini kalici olarak karalayip sansurleyin. Alan secimi veya metin arama ile hassas bilgileri kaldirin.',
+            'keywords': 'pdf karalama, pdf sansur, pdf redact, hassas bilgi silme, pdf gizleme, pdf censor',
+            'h1': 'PDF Karalama (Redact)',
+            'subtitle': 'PDF icerigini kalici olarak karalayip sansurleyin',
+            'faq': [
+                {'q': 'PDF karalama nasil calisir?', 'a': 'Alan secimi ile dikdortgen bolgeler secebilir veya metin arama ile belirli kelimeleri tum sayfalarda karalayabilirsiniz. Karalama kalicidir.'},
+                {'q': 'Karalanan icerik geri getirilebilir mi?', 'a': 'Hayir, karalama islemi kalicidir. Orijinal icerik tamamen silinir ve geri dondurulemez.'},
+            ]
+        },
+        'en': {
+            'title': 'PDF Redact - Free Online | PDFEdit',
+            'description': 'Permanently redact and censor PDF content. Remove sensitive information by area selection or text search.',
+            'keywords': 'pdf redact, pdf censor, redact pdf text, remove sensitive info, pdf blackout, pdf redaction',
+            'h1': 'PDF Redact',
+            'subtitle': 'Permanently redact and censor PDF content',
+            'faq': [
+                {'q': 'How does PDF redaction work?', 'a': 'You can select rectangular areas or search for specific text to redact across all pages. Redaction is permanent.'},
+                {'q': 'Can redacted content be recovered?', 'a': 'No, redaction is permanent. The original content is completely removed and cannot be recovered.'},
+            ]
+        }
+    },
+    'resize': {
+        'tr': {
+            'title': 'PDF Sayfa Boyutu Degistirme - Ucretsiz Online | PDFEdit',
+            'description': 'PDF sayfalarini A4, Letter, A3, A5 gibi standart boyutlara donusturun. Sigdir, kes veya genislet modlari ile ucretsiz boyutlandirma.',
+            'keywords': 'pdf boyut degistirme, pdf resize, pdf a4, pdf letter, sayfa boyutu, pdf page size',
+            'h1': 'PDF Sayfa Boyutu Degistirme',
+            'subtitle': 'PDF sayfalarini standart boyutlara donusturun',
+            'faq': [
+                {'q': 'PDF sayfa boyutu nasil degistirilir?', 'a': 'PDF dosyanizi yukleyin, hedef boyutu (A4, Letter vs.) ve modu (Sigdir, Kes, Genislet) secin, "Boyutlandir" butonuna basin.'},
+                {'q': 'Hangi boyutlar destekleniyor?', 'a': 'A4, Letter, A3, A5 ve Legal standart sayfa boyutlari desteklenmektedir.'},
+            ]
+        },
+        'en': {
+            'title': 'Resize PDF Pages - Free Online | PDFEdit',
+            'description': 'Convert PDF pages to standard sizes like A4, Letter, A3, A5. Free resizing with fit, crop, or expand modes.',
+            'keywords': 'resize pdf, pdf page size, pdf a4, pdf letter, change pdf size, pdf dimensions',
+            'h1': 'Resize PDF Pages',
+            'subtitle': 'Convert PDF pages to standard sizes',
+            'faq': [
+                {'q': 'How do I resize PDF pages?', 'a': 'Upload your PDF, select target size (A4, Letter, etc.) and mode (Fit, Crop, Expand), then click "Resize".'},
+                {'q': 'What sizes are supported?', 'a': 'A4, Letter, A3, A5, and Legal standard page sizes are supported.'},
+            ]
+        }
+    },
+    'office-to-pdf': {
+        'tr': {
+            'title': 'Office\'den PDF\'e Donusturme - Ucretsiz Online | PDFEdit',
+            'description': 'Word, Excel ve PowerPoint dosyalarini PDF\'e donusturun. DOCX, XLSX, PPTX destegi ile ucretsiz online donusturme.',
+            'keywords': 'word pdf, excel pdf, powerpoint pdf, docx pdf, xlsx pdf, office pdf donusturme',
+            'h1': 'Office\'den PDF\'e Donusturme',
+            'subtitle': 'Word, Excel ve PowerPoint dosyalarini PDF\'e donusturun',
+            'faq': [
+                {'q': 'Hangi dosya formatlari destekleniyor?', 'a': 'DOCX, DOC, XLSX, XLS, PPTX, PPT, ODT, ODS ve ODP formatlari desteklenmektedir.'},
+                {'q': 'Donusturme kalitesi nasil?', 'a': 'LibreOffice motor kullanilarak yuksek kaliteli donusturme yapilir. Yapilar ve bicimler mumkun oldugunca korunur.'},
+            ]
+        },
+        'en': {
+            'title': 'Office to PDF Converter - Free Online | PDFEdit',
+            'description': 'Convert Word, Excel and PowerPoint files to PDF. Free online converter with DOCX, XLSX, PPTX support.',
+            'keywords': 'word to pdf, excel to pdf, powerpoint to pdf, docx to pdf, xlsx to pdf, office to pdf',
+            'h1': 'Office to PDF Converter',
+            'subtitle': 'Convert Word, Excel and PowerPoint files to PDF',
+            'faq': [
+                {'q': 'What file formats are supported?', 'a': 'DOCX, DOC, XLSX, XLS, PPTX, PPT, ODT, ODS, and ODP formats are supported.'},
+                {'q': 'How is the conversion quality?', 'a': 'High-quality conversion is performed using the LibreOffice engine. Layouts and formatting are preserved as much as possible.'},
+            ]
+        }
+    },
 }
 
 # Site geneli SEO verileri
 SITE_SEO = {
     'tr': {
         'site_name': 'PDFEdit - Ucretsiz Online PDF Araclari',
-        'site_description': '23 ucretsiz online PDF araci. PDF birlestirme, bolme, sikistirma, sifreleme, filigran, dondurme ve daha fazlasi. Hizli, guvenli ve gizlilik odakli.',
+        'site_description': '28 ucretsiz online PDF araci. PDF birlestirme, bolme, sikistirma, sifreleme, filigran, OCR, imzalama, karalama ve daha fazlasi. Hizli, guvenli ve gizlilik odakli.',
         'site_keywords': 'pdf araclari, ucretsiz pdf, online pdf, pdf islem, pdf edit, pdf duzenleyici',
         'hero_title': 'Ucretsiz Online PDF Araclari',
-        'hero_subtitle': '23 profesyonel PDF araci. Hizli, guvenli ve tamamen ucretsiz.',
+        'hero_subtitle': '28 profesyonel PDF araci. Hizli, guvenli ve tamamen ucretsiz.',
         'how_it_works': [
             {'icon': '&#128228;', 'title': 'Yukle', 'desc': 'PDF dosyanizi surukleyin veya secin'},
             {'icon': '&#9881;', 'title': 'Isle', 'desc': 'Araci secin ve ayarlari yapin'},
@@ -593,10 +718,10 @@ SITE_SEO = {
     },
     'en': {
         'site_name': 'PDFEdit - Free Online PDF Tools',
-        'site_description': '23 free online PDF tools. Merge, split, compress, encrypt, watermark, rotate PDFs and more. Fast, secure, and privacy-focused.',
+        'site_description': '28 free online PDF tools. Merge, split, compress, encrypt, watermark, OCR, sign, redact PDFs and more. Fast, secure, and privacy-focused.',
         'site_keywords': 'pdf tools, free pdf, online pdf, pdf processing, pdf edit, pdf editor',
         'hero_title': 'Free Online PDF Tools',
-        'hero_subtitle': '23 professional PDF tools. Fast, secure, and completely free.',
+        'hero_subtitle': '28 professional PDF tools. Fast, secure, and completely free.',
         'how_it_works': [
             {'icon': '&#128228;', 'title': 'Upload', 'desc': 'Drag and drop or select your PDF file'},
             {'icon': '&#9881;', 'title': 'Process', 'desc': 'Choose a tool and configure settings'},

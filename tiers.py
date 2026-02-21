@@ -20,7 +20,8 @@ TIERS = {
         'tools': [
             'encrypt', 'watermark', 'extract_images', 'repair',
             'pdf_to_image', 'reorder', 'numbering', 'metadata',
-            'compare', 'pdf_to_excel', 'form_fill', 'pdf_to_word', 'pdf_to_pdfa'
+            'compare', 'pdf_to_excel', 'form_fill', 'pdf_to_word', 'pdf_to_pdfa',
+            'ocr', 'sign', 'redact', 'resize', 'office_to_pdf'
         ],
         'daily_limit': 10,
         'max_file_size': 100 * 1024 * 1024,  # 100MB

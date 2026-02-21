@@ -351,6 +351,7 @@ function updateWatermarkPreview(container, text, options = {}) {
     const posMap = {
         'center':       { top: '50%', left: '50%', transform: `translate(-50%,-50%) rotate(${rotation}deg)` },
         'top-left':     { top: '8%', left: '8%', transform: `rotate(${rotation}deg)` },
+        'top-center':   { top: '8%', left: '50%', transform: `translateX(-50%) rotate(${rotation}deg)` },
         'top-right':    { top: '8%', right: '8%', left: 'auto', transform: `rotate(${rotation}deg)` },
         'bottom-left':  { bottom: '8%', top: 'auto', left: '8%', transform: `rotate(${rotation}deg)` },
         'bottom-right': { bottom: '8%', top: 'auto', right: '8%', left: 'auto', transform: `rotate(${rotation}deg)` },
@@ -366,6 +367,7 @@ function updateWatermarkPreview(container, text, options = {}) {
 function updateImageWatermarkPreview(container, imageSrc, options = {}) {
     const pos = options.position || 'center';
     const opacity = options.opacity || 0.5;
+    const scale = options.scale || 0.2;
 
     let overlay = container.querySelector('.preview-overlay');
     if (!overlay) {
@@ -383,8 +385,9 @@ function updateImageWatermarkPreview(container, imageSrc, options = {}) {
 
     wmImg.src = imageSrc;
     wmImg.style.opacity = opacity;
-    wmImg.style.maxWidth = '40%';
-    wmImg.style.maxHeight = '40%';
+    const sizePercent = Math.max(10, Math.min(scale * 200, 100));
+    wmImg.style.maxWidth = sizePercent + '%';
+    wmImg.style.maxHeight = sizePercent + '%';
 
     // Reset position styles
     Object.assign(wmImg.style, { top: '', left: '', right: '', bottom: '', transform: '' });
@@ -392,6 +395,7 @@ function updateImageWatermarkPreview(container, imageSrc, options = {}) {
     const posMap = {
         'center':       { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' },
         'top-left':     { top: '8%', left: '8%' },
+        'top-center':   { top: '8%', left: '50%', transform: 'translateX(-50%)' },
         'top-right':    { top: '8%', right: '8%', left: 'auto' },
         'bottom-left':  { bottom: '8%', top: 'auto', left: '8%' },
         'bottom-right': { bottom: '8%', top: 'auto', right: '8%', left: 'auto' },
