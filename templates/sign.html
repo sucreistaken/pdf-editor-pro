@@ -389,7 +389,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('sign_complete')}</h3>
                     <p>${data.message || ''}</p>
-                    <a href="${data.download_url}" class="btn-primary" style="display:inline-block;margin-top:12px;text-decoration:none;">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('signed_suffix'))}
                 `;
                 resultDiv.style.display = 'block';
                 showToast(__('sign_complete'), 'success');

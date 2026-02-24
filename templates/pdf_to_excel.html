@@ -140,7 +140,7 @@
                             <div class="stat-label">${__('pdf_to_excel_rows')}</div>
                         </div>
                     </div>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, '', '.xlsx')}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-excel');
             } else {

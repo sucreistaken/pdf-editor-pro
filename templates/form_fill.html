@@ -257,7 +257,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('form_fill_complete')}</h3>
                     <p>${data.filled_count} ${__('form_fill_field_name')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('filled_suffix'))}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'form-fill');
             } else {

@@ -515,7 +515,7 @@
                             <div class="stat-label">DPI</div>
                         </div>
                     </div>
-                    <a href="${data.download_url}" class="download-zip-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('images_suffix'), '.zip')}
                 `;
                 steps.setStep(2);
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-image');

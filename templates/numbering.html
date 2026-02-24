@@ -346,7 +346,7 @@
                 }
                 result.innerHTML = `<h3>${__('numbering_complete')}</h3>
                     ${statsHtml}
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>`;
+                    ${downloadHTML(data.download_url, selectedFile.name, __('numbered_suffix'))}`;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'numbering');
             } else {
                 throw new Error(data.error);

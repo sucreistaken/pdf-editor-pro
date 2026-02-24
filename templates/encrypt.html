@@ -412,7 +412,7 @@
                 result.innerHTML = `
                     <h3>${__('encrypt_complete')}</h3>
                     <p>${__('encrypt_success_msg')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, encryptFile.name, __('encrypted_suffix'))}
                 `;
                 showToast(__('encrypt_complete'), 'success');
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'encrypt');
@@ -505,7 +505,7 @@
                 result.innerHTML = `
                     <h3>${__('decrypt_complete')}</h3>
                     <p>${__('decrypt_success_msg')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, decryptFile.name, __('decrypted_suffix'))}
                 `;
                 showToast(__('decrypt_complete'), 'success');
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'encrypt');

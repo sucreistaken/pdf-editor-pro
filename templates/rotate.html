@@ -546,7 +546,7 @@
                 result.innerHTML = `
                     <h3>${__('rotate_complete')}</h3>
                     <p>${data.message || __('rotate_success_msg')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('rotated_suffix'))}
                 `;
                 result.style.display = 'block';
                 showToast(__('rotate_complete'), 'success');

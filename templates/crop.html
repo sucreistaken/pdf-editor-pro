@@ -349,7 +349,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('crop_complete')}</h3>
                     <p>${data.page_count} ${__('pages')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('cropped_suffix'))}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'crop');
             } else {

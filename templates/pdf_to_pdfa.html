@@ -173,7 +173,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('pdf_to_pdfa_complete')}</h3>
                     <p style="color:rgba(255,255,255,0.7);margin-bottom:12px;">${data.version}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, 'pdfa')}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-pdfa');
             } else {

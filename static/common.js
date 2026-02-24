@@ -511,6 +511,32 @@ function showRelatedTools(container, currentTool) {
     `;
 }
 
+// ==================== Download HTML Helper ====================
+let _dlCounter = 0;
+/**
+ * Duzenlenebilir dosya adli indirme butonu olusturur.
+ * Dosya adi: orijinal_ad(1).pdf seklinde olusturulur.
+ */
+function downloadHTML(downloadUrl, originalFilename, _unused, ext) {
+    var baseUrl = downloadUrl.split('?')[0];
+    var origExt = originalFilename ? (originalFilename.match(/\.[^.]+$/) || ['.pdf'])[0] : '.pdf';
+    ext = ext || origExt;
+    var baseName = originalFilename ? originalFilename.replace(/\.[^.]+$/, '') : 'dosya';
+    var defaultName = baseName + '(1)' + ext;
+    var uid = '_dl' + (++_dlCounter);
+    var safeBaseUrl = baseUrl.replace(/'/g, "\\'");
+    var safeName = defaultName.replace(/"/g, '&quot;');
+
+    return '<div class="download-filename-wrap">' +
+        '<input type="text" id="' + uid + '" class="download-filename-input" value="' + safeName + '">' +
+        '</div>' +
+        '<a href="' + baseUrl + '?name=' + encodeURIComponent(defaultName) + '" ' +
+        'class="btn-primary download-link-btn" style="display:inline-block;margin-top:12px;text-decoration:none;" ' +
+        'onclick="var n=document.getElementById(\'' + uid + '\').value.trim();' +
+        'if(n)this.href=\'' + safeBaseUrl + '?name=\'+encodeURIComponent(n)">' +
+        __('download') + '</a>';
+}
+
 // Surukle birak siralama
 function enableDragSort(container, itemSelector, onReorder) {
     let dragItem = null;

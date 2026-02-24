@@ -674,7 +674,7 @@
                 // Download all button
                 if (data.zip_url) {
                     document.getElementById('downloadAllSection').innerHTML = `
-                        <a href="${data.zip_url}" class="download-all-btn">${__('download_zip')}</a>
+                        ${downloadHTML(data.zip_url, selectedFile.name, __('images_suffix'), '.zip')}
                     `;
                 } else {
                     document.getElementById('downloadAllSection').innerHTML = '';

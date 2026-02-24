@@ -130,7 +130,7 @@
                 resultDiv.className = 'result show';
                 resultDiv.innerHTML = `
                     <h3>${__('pdf_to_word_complete')}</h3>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, '', '.docx')}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'pdf-to-word');
             } else {

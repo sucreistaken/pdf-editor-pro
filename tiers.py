@@ -11,7 +11,7 @@ TIERS = {
     'free': {
         'tools': [
             'merge', 'split', 'rotate', 'compress',
-            'img_to_pdf', 'extract_text', 'crop'
+            'img_to_pdf', 'extract_text', 'crop', 'reorder'
         ],
         'daily_limit': None,  # Sinirsiz
         'max_file_size': 50 * 1024 * 1024,  # 50MB
@@ -19,7 +19,7 @@ TIERS = {
     'limited_free': {
         'tools': [
             'encrypt', 'watermark', 'extract_images', 'repair',
-            'pdf_to_image', 'reorder', 'numbering', 'metadata',
+            'pdf_to_image', 'numbering', 'metadata',
             'compare', 'pdf_to_excel', 'form_fill', 'pdf_to_word', 'pdf_to_pdfa',
             'ocr', 'sign', 'redact', 'resize', 'office_to_pdf'
         ],

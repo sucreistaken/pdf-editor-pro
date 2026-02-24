@@ -1003,7 +1003,7 @@ def api_split():
                         fpath = os.path.join(output_folder, f_info)
                         if os.path.exists(fpath):
                             zf.write(fpath, f_info)
-                zip_url = f'/download/{zip_filename}?name=bolunmus.zip'
+                zip_url = f'/download/{zip_filename}'
 
             return api_success(
                 files=files,
@@ -1060,7 +1060,7 @@ def api_encrypt():
 
     if result['success']:
         return api_success(
-            download_url=f'/download/{output_filename}?name=sifreli.pdf',
+            download_url=f'/download/{output_filename}',
             filename='sifreli.pdf'
         )
     else:
@@ -1093,7 +1093,7 @@ def api_decrypt():
 
     if result['success']:
         return api_success(
-            download_url=f'/download/{output_filename}?name=sifresiz.pdf',
+            download_url=f'/download/{output_filename}',
             filename='sifresiz.pdf'
         )
     else:
@@ -1131,7 +1131,7 @@ def api_img_to_pdf():
     if result['success']:
         return jsonify({
             'success': True,
-            'download_url': f'/download/{output_filename}?name=gorsellerden.pdf',
+            'download_url': f'/download/{output_filename}',
             'filename': 'gorsellerden.pdf',
             'pages': result.get('pages', len(image_paths))
         })
@@ -1180,7 +1180,7 @@ def api_watermark_text():
         os.remove(input_path)
 
     if result['success']:
-        return api_success(download_url=f'/download/{output_filename}?name=filigranli.pdf')
+        return api_success(download_url=f'/download/{output_filename}')
     else:
         return jsonify(result), 400
 
@@ -1217,7 +1217,7 @@ def api_watermark_image():
         os.remove(image_path)
 
     if result['success']:
-        return api_success(download_url=f'/download/{output_filename}?name=filigranli.pdf')
+        return api_success(download_url=f'/download/{output_filename}')
     else:
         return jsonify(result), 400
 
@@ -1249,7 +1249,7 @@ def api_compress():
             compressed_size=format_size(result['compressed_size']),
             reduction=result['reduction_percent'],
             images_compressed=result.get('images_compressed', 0),
-            download_url=f'/download/{output_filename}?name=compressed.pdf'
+            download_url=f'/download/{output_filename}'
         )
     else:
         return jsonify(result), 400
@@ -1288,7 +1288,7 @@ def api_rotate():
     if result['success']:
         return api_success(
             message=result['message'],
-            download_url=f'/download/{output_filename}?name=dondurulmus.pdf'
+            download_url=f'/download/{output_filename}'
         )
     else:
         return jsonify(result), 400
@@ -1383,7 +1383,7 @@ def api_extract_images():
             'success': True,
             'images': images_with_urls,
             'count': result['count'],
-            'zip_url': f'/download/{zip_filename}?name=images.zip'
+            'zip_url': f'/download/{zip_filename}'
         })
     else:
         return jsonify(result), 400
@@ -1440,7 +1440,6 @@ def api_reorder_upload():
     return api_success(job_id=job_id)
 
 @app.route('/api/reorder-pages', methods=['POST'])
-@rate_limit('reorder')
 def api_reorder_pages():
     data = request.get_json()
 
@@ -1468,7 +1467,7 @@ def api_reorder_pages():
     del progress_data[reorder_key]
 
     if result['success']:
-        result['download_url'] = f'/download/{output_filename}?name=sirali.pdf'
+        result['download_url'] = f'/download/{output_filename}'
 
     return jsonify(result)
 
@@ -1514,7 +1513,7 @@ def api_pdf_repair():
         os.remove(input_path)
 
     if result['success']:
-        result['download_url'] = f'/download/{output_filename}?name=onarilmis.pdf'
+        result['download_url'] = f'/download/{output_filename}'
 
     return jsonify(result)
 
@@ -1525,7 +1524,7 @@ def download_file(filename):
     if not file_path:
         return api_error('Gecersiz dosya yolu!', 403)
 
-    custom_name = request.args.get('name', 'dosya.pdf')
+    custom_name = request.args.get('name', filename)
 
     if os.path.exists(file_path):
         return send_file(
@@ -1567,7 +1566,7 @@ def api_pdf_to_image():
             return api_success(
                 page_count=result['page_count'],
                 format=format_type.upper(),
-                download_url=f'/download/{zip_filename}?name=pdf_images.zip'
+                download_url=f'/download/{zip_filename}'
             )
         else:
             return api_error(result.get('error', 'Dönüştürme hatası'))
@@ -1677,7 +1676,7 @@ def api_metadata_update():
     del progress_data[meta_key]
 
     if result['success']:
-        result['download_url'] = f'/download/{output_filename}?name=metadata_duzenlenmis.pdf'
+        result['download_url'] = f'/download/{output_filename}'
 
     return jsonify(result)
 
@@ -1707,7 +1706,7 @@ def api_metadata_clear():
     del progress_data[meta_key]
 
     if result['success']:
-        result['download_url'] = f'/download/{output_filename}?name=metadata_temiz.pdf'
+        result['download_url'] = f'/download/{output_filename}'
 
     return jsonify(result)
 
@@ -1745,7 +1744,7 @@ def api_numbering():
 
     if result['success']:
         return api_success(
-            download_url=f'/download/{output_filename}?name=numarali.pdf',
+            download_url=f'/download/{output_filename}',
             page_count=result.get('page_count', 0)
         )
     else:
@@ -1782,7 +1781,7 @@ def api_crop():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=kirpilmis.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='kirpilmis.pdf',
                 page_count=result.get('page_count', 0)
             )
@@ -1907,7 +1906,7 @@ def api_form_fill():
     del progress_data[form_key]
 
     if result['success']:
-        result['download_url'] = f'/download/{output_filename}?name=doldurulmus.pdf'
+        result['download_url'] = f'/download/{output_filename}'
 
     return jsonify(result)
 
@@ -1971,7 +1970,7 @@ def api_pdf_to_pdfa():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=pdfa.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='pdfa.pdf',
                 version=result.get('version', ''),
                 page_count=result.get('page_count', 0)
@@ -2013,7 +2012,7 @@ def api_ocr():
                 'page_count': result['page_count'],
                 'char_count': result['char_count'],
                 'word_count': result['word_count'],
-                'download_url': f'/download/{output_filename}?name=ocr_metin.txt'
+                'download_url': f'/download/{output_filename}'
             })
         else:
             return api_error(result.get('error', 'OCR hatasi'))
@@ -2056,7 +2055,7 @@ def api_sign():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=imzali.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='imzali.pdf',
                 message=result.get('message', ''),
                 page_count=result.get('page_count', 0)
@@ -2098,7 +2097,7 @@ def api_redact():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=karalanmis.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='karalanmis.pdf',
                 message=result.get('message', ''),
                 redaction_count=result.get('redaction_count', 0)
@@ -2134,7 +2133,7 @@ def api_redact_text():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=karalanmis.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='karalanmis.pdf',
                 message=result.get('message', ''),
                 redaction_count=result.get('redaction_count', 0)
@@ -2172,7 +2171,7 @@ def api_resize():
 
         if result['success']:
             return api_success(
-                download_url=f'/download/{output_filename}?name=boyutlandirilmis.pdf',
+                download_url=f'/download/{output_filename}',
                 filename='boyutlandirilmis.pdf',
                 message=result.get('message', ''),
                 page_count=result.get('page_count', 0),

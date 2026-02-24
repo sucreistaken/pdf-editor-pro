@@ -466,7 +466,7 @@
 
     <div class="issues-list" id="fixedList"></div>
 
-    <a href="#" class="download-result-btn" id="downloadBtn">{{ _('download') }}</a>
+    <div id="downloadSection" style="display:none;"></div>
 
     <button class="btn-reset" onclick="resetAll()">{{ _('new_file') }}</button>
 </div>
@@ -688,7 +688,7 @@
         const icon = document.getElementById('resultIcon');
         const title = document.getElementById('resultTitle');
         const desc = document.getElementById('resultDesc');
-        const downloadBtn = document.getElementById('downloadBtn');
+        // downloadSection is used instead of downloadBtn
 
         if (data.success) {
             icon.textContent = '✅';
@@ -741,8 +741,9 @@
             }
             fixedList.innerHTML = fixedHtml;
 
-            downloadBtn.href = data.download_url;
-            downloadBtn.style.display = 'block';
+            var dlSection = document.getElementById('downloadSection');
+            dlSection.innerHTML = downloadHTML(data.download_url, pdfFile.name, __('repaired_suffix'));
+            dlSection.style.display = 'block';
             steps.setStep(2);
             showRelatedTools(document.getElementById('relatedToolsContainer'), 'repair');
         } else {
@@ -751,7 +752,7 @@
             desc.textContent = data.error || __('repair_failed_desc');
             document.getElementById('statsGrid').innerHTML = '';
             document.getElementById('fixedList').innerHTML = '';
-            downloadBtn.style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'none';
         }
     }
 
@@ -767,7 +768,7 @@
         analysisSection.classList.remove('active');
         progressSection.classList.remove('active');
         resultSection.classList.remove('active');
-        document.getElementById('downloadBtn').style.display = 'block';
+        document.getElementById('downloadSection').style.display = 'none';
 
         document.getElementById('progressBar').style.width = '0%';
     }

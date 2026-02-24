@@ -59,6 +59,22 @@ TRANSLATIONS = {
         'pages': 'Sayfa',
         'of': '/',
 
+        # Download filename suffixes
+        'compressed_suffix': 'sikistirilmis',
+        'encrypted_suffix': 'sifreli',
+        'decrypted_suffix': 'sifresiz',
+        'watermarked_suffix': 'filigranli',
+        'rotated_suffix': 'dondurulmus',
+        'numbered_suffix': 'numarali',
+        'resized_suffix': 'boyutlandirilmis',
+        'signed_suffix': 'imzali',
+        'redacted_suffix': 'karalanmis',
+        'reordered_suffix': 'sirali',
+        'repaired_suffix': 'onarilmis',
+        'cropped_suffix': 'kirpilmis',
+        'images_suffix': 'gorseller',
+        'filled_suffix': 'doldurulmus',
+
         # Step labels
         'step_upload': 'Yükle',
         'step_configure': 'Ayarla',
@@ -227,6 +243,7 @@ TRANSLATIONS = {
         'reorder_btn': 'Kaydet',
         'reorder_btn_loading': 'Kaydediliyor...',
         'reorder_complete': 'Sıralama Kaydedildi!',
+        'reorder_complete_desc': 'PDF sayfaları başarıyla yeniden sıralandı.',
 
         # Repair
         'repair_title': 'PDF Onarma',
@@ -373,6 +390,8 @@ TRANSLATIONS = {
         'redact_text_required': 'Aranacak metin gerekli!',
         'redact_no_areas': 'En az bir alan seçin!',
         'redact_areas_selected': 'alan seçildi',
+        'undo': 'Geri Al',
+        'clear_all': 'Tümünü Temizle',
 
         # Resize
         'resize_title': 'PDF Sayfa Boyutu Değiştirme',
@@ -515,6 +534,22 @@ TRANSLATIONS = {
         'page': 'Page',
         'pages': 'Pages',
         'of': '/',
+
+        # Download filename suffixes
+        'compressed_suffix': 'compressed',
+        'encrypted_suffix': 'encrypted',
+        'decrypted_suffix': 'decrypted',
+        'watermarked_suffix': 'watermarked',
+        'rotated_suffix': 'rotated',
+        'numbered_suffix': 'numbered',
+        'resized_suffix': 'resized',
+        'signed_suffix': 'signed',
+        'redacted_suffix': 'redacted',
+        'reordered_suffix': 'reordered',
+        'repaired_suffix': 'repaired',
+        'cropped_suffix': 'cropped',
+        'images_suffix': 'images',
+        'filled_suffix': 'filled',
 
         # Step labels
         'step_upload': 'Upload',
@@ -684,6 +719,7 @@ TRANSLATIONS = {
         'reorder_btn': 'Save',
         'reorder_btn_loading': 'Saving...',
         'reorder_complete': 'Pages Reordered!',
+        'reorder_complete_desc': 'PDF pages have been reordered successfully.',
 
         # Repair
         'repair_title': 'Repair PDF',
@@ -830,6 +866,8 @@ TRANSLATIONS = {
         'redact_text_required': 'Search text is required!',
         'redact_no_areas': 'Select at least one area!',
         'redact_areas_selected': 'areas selected',
+        'undo': 'Undo',
+        'clear_all': 'Clear All',
 
         # Resize
         'resize_title': 'Resize PDF Pages',
@@ -955,6 +993,10 @@ def get_js_translations(lang):
         'crop_', 'compare_', 'pdf_to_excel_', 'form_fill_',
         'pdf_to_word_', 'pdf_to_pdfa_', 'preview_',
         'ocr_', 'sign_', 'redact_', 'resize_', 'office_to_pdf_',
+        'compressed_', 'encrypted_', 'decrypted_', 'watermarked_',
+        'rotated_', 'numbered_', 'resized_', 'signed_',
+        'redacted_', 'reordered_', 'repaired_', 'cropped_',
+        'images_', 'filled_', 'undo', 'clear_all',
     ]
     result = {}
     for key, val in translations.items():

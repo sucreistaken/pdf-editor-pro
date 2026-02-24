@@ -557,7 +557,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('watermark_complete')}</h3>
                     <p>${__('watermark_text_success')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, textPdfFile.name, __('watermarked_suffix'))}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'watermark');
             } else {
@@ -606,7 +606,7 @@
                 resultDiv.innerHTML = `
                     <h3>${__('watermark_complete')}</h3>
                     <p>${__('watermark_image_success')}</p>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, imagePdfFile.name, __('watermarked_suffix'))}
                 `;
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'watermark');
             } else {

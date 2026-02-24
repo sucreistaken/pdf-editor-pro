@@ -261,7 +261,7 @@
                             <div class="stat-label">${__('compress_images')}</div>
                         </div>
                     </div>
-                    <a href="${data.download_url}" class="download-btn">${__('download')}</a>
+                    ${downloadHTML(data.download_url, selectedFile.name, __('compressed_suffix'))}
                 `;
 
 

@@ -507,7 +507,7 @@
     <div class="modal-content">
         <h3>{{ _('reorder_complete') }}</h3>
         <p>{{ _('reorder_complete_desc') }}</p>
-        <a href="#" class="download-link" id="downloadLink">{{ _('download') }}</a>
+        <div id="reorderDownloadSection"></div>
     </div>
 </div>
 {% endblock %}
@@ -776,7 +776,7 @@
             const data = await response.json();
 
             if (data.success) {
-                document.getElementById('downloadLink').href = data.download_url;
+                document.getElementById('reorderDownloadSection').innerHTML = downloadHTML(data.download_url, pdfFile.name, __('reordered_suffix'));
                 document.getElementById('successModal').classList.add('active');
                 steps.setStep(2);
                 showRelatedTools(document.getElementById('relatedToolsContainer'), 'reorder');

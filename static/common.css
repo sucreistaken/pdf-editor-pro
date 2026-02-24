@@ -340,6 +340,55 @@ input[type="file"] {
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
 }
 
+/* Download Filename Input */
+.download-filename-wrap {
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+}
+
+.download-filename-input {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.95rem;
+    font-family: inherit;
+    font-weight: 600;
+    text-align: center;
+    min-width: 260px;
+    max-width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.download-filename-input:focus {
+    border-color: rgba(16, 185, 129, 0.6);
+}
+
+/* Light background modals (reorder etc.) */
+.modal-content .download-filename-input {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #1f2937;
+}
+
+.modal-content .download-filename-input:focus {
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.modal-content .download-link-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+}
+
+.modal-content .download-link-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;
