@@ -176,20 +176,22 @@ def allowed_file(filename, file_type):
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
 
     if config.FLASK_ENV == 'production':
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
+    # frame-ancestors: iframe gommeye izin ver (NodeBB vb. disaridan gommek icin)
+    allowed_origins = getattr(config, 'ALLOWED_FRAME_ORIGINS', '*')
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data:; "
-        "connect-src 'self'"
+        "connect-src 'self'; "
+        f"frame-ancestors {allowed_origins}"
     )
 
     return response
@@ -1619,7 +1621,7 @@ def api_html_to_pdf():
                 download_url=f'/download/{output_filename}?name={custom_name}'
             )
         else:
-            return jsonify(result), 400
+            return api_error(result.get('error', 'Dönüştürme hatası'))
     except Exception as e:
         logger.error(f"HTML to PDF error: {e}", exc_info=True)
         return api_error('HTML dönüştürme hatası')

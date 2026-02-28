@@ -110,6 +110,10 @@ DEFAULT_LANGUAGE = os.environ.get('DEFAULT_LANGUAGE', 'tr')
 # Analytics
 GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID', '')
 
+# iframe gomme (varsayilan: herkese acik, kisitlamak icin domain listesi ver)
+# Ornek: ALLOWED_FRAME_ORIGINS="https://forum.example.com https://mysite.com"
+ALLOWED_FRAME_ORIGINS = os.environ.get('ALLOWED_FRAME_ORIGINS', '*')
+
 # Logging
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 LOG_FILE = os.environ.get('LOG_FILE', '')
