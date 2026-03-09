@@ -534,12 +534,10 @@
         formData.append('pdf_file', pdfFile);
 
         try {
-            const response = await fetch('/api/pdf-analyze', {
+            analysisData = await safeFetch('/api/pdf-analyze', {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                body: formData
             });
-            analysisData = await response.json();
 
             if (analysisData.success) {
                 showAnalysis(analysisData);
@@ -662,12 +660,10 @@
         formData.append('pdf_file', pdfFile);
 
         try {
-            const response = await fetch('/api/pdf-repair', {
+            const data = await safeFetch('/api/pdf-repair', {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                body: formData
             });
-            const data = await response.json();
 
             clearInterval(progressInterval);
             progressBar.style.width = '100%';

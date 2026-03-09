@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# System dependencies for PDF processing
+# System dependencies - lightweight packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     libglib2.0-0 \
@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     tesseract-ocr \
     tesseract-ocr-tur \
+    && rm -rf /var/lib/apt/lists/*
+
+# LibreOffice - installed separately due to large size
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     libreoffice-calc \
     libreoffice-impress \

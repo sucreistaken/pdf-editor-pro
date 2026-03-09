@@ -489,12 +489,10 @@
         formData.append('dpi', dpi);
 
         try {
-            const response = await fetch('/api/pdf-to-image', {
+            const data = await safeFetch('/api/pdf-to-image', {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                body: formData
             });
-            const data = await response.json();
             const resultEl = document.getElementById('result');
 
             if (data.success) {

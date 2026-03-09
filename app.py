@@ -82,6 +82,16 @@ app.secret_key = config.SECRET_KEY
 # CSRF korumasi
 csrf = CSRFProtect(app)
 
+# CSRF hatalarinda JSON donmesi icin handler (yoksa HTML doner ve JS parse edemez)
+from flask_wtf.csrf import CSRFError
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    """CSRF token suresi dolmus veya gecersiz - API'ler icin JSON dondur"""
+    if request.path.startswith('/api/') or request.headers.get('X-CSRFToken'):
+        return jsonify({'success': False, 'error': 'Oturum süresi dolmuş. Lütfen sayfayı yenileyip tekrar deneyin.'}), 400
+    return render_template('error.html', error_code=400, error_message='Oturum süresi dolmuş. Lütfen sayfayı yenileyip tekrar deneyin.'), 400
+
 # Gzip compression
 try:
     from flask_compress import Compress
@@ -186,11 +196,12 @@ def add_security_headers(response):
     allowed_origins = getattr(config, 'ALLOWED_FRAME_ORIGINS', '*')
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data:; "
-        "connect-src 'self'; "
+        "img-src 'self' data: blob:; "
+        "worker-src 'self' blob:; "
+        "connect-src 'self' https://cdnjs.cloudflare.com; "
         f"frame-ancestors {allowed_origins}"
     )
 

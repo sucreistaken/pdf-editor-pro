@@ -573,12 +573,10 @@
         formData.append('pdf_file', pdfFile);
 
         try {
-            const response = await fetch('/api/pdf-thumbnails', {
+            const data = await safeFetch('/api/pdf-thumbnails', {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                body: formData
             });
-            const data = await response.json();
 
             if (data.success) {
                 pages = data.thumbnails;
@@ -750,12 +748,10 @@
 
         try {
             // Step 1: Upload and get job_id
-            const uploadResp = await fetch('/api/reorder-upload', {
+            const uploadData = await safeFetch('/api/reorder-upload', {
                 method: 'POST',
-                body: uploadFormData,
-                headers: { 'X-CSRFToken': getCSRFToken() }
+                body: uploadFormData
             });
-            const uploadData = await uploadResp.json();
 
             if (!uploadData.success) throw new Error(uploadData.error || __('error'));
 
@@ -764,16 +760,14 @@
             // Step 2: Send new order with job_id
             const newOrder = pages.map(p => p.page);
 
-            const response = await fetch('/api/reorder-pages', {
+            const data = await safeFetch('/api/reorder-pages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     job_id: jobId,
                     new_order: newOrder
                 })
             });
-
-            const data = await response.json();
 
             if (data.success) {
                 document.getElementById('reorderDownloadSection').innerHTML = downloadHTML(data.download_url, pdfFile.name, __('reordered_suffix'));

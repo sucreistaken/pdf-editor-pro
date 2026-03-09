@@ -350,12 +350,11 @@
         };
 
         try {
-            const response = await fetch('/api/metadata/update', {
+            const data = await safeFetch('/api/metadata/update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            const data = await response.json();
             const result = document.getElementById('result');
 
             if (data.success) {
@@ -399,12 +398,11 @@
         };
 
         try {
-            const response = await fetch('/api/metadata/clear', {
+            const data = await safeFetch('/api/metadata/clear', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            const data = await response.json();
             const result = document.getElementById('result');
 
             if (data.success) {

@@ -158,20 +158,74 @@ function uploadWithProgress(url, formData, options = {}) {
         }
 
         xhr.addEventListener('load', () => {
-            try {
-                const data = JSON.parse(xhr.responseText);
-                resolve(data);
-            } catch (e) {
-                reject(new Error('Sunucu yanıtı ayrıştırılamadı'));
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    resolve(data);
+                } catch (e) {
+                    reject(new Error('Sunucu yanıtı işlenemedi. Lütfen tekrar deneyin.'));
+                }
+            } else if (xhr.status === 413) {
+                reject(new Error('Dosya çok büyük! Lütfen daha küçük bir dosya deneyin.'));
+            } else if (xhr.status === 429) {
+                reject(new Error('Çok fazla istek gönderildi. Lütfen biraz bekleyin.'));
+            } else if (xhr.status >= 500) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    reject(new Error(data.error || 'Sunucu hatası oluştu. Lütfen tekrar deneyin.'));
+                } catch (e) {
+                    reject(new Error('Sunucu hatası oluştu (' + xhr.status + '). Lütfen tekrar deneyin.'));
+                }
+            } else {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    reject(new Error(data.error || 'İstek başarısız (' + xhr.status + ')'));
+                } catch (e) {
+                    reject(new Error('İstek başarısız (' + xhr.status + ')'));
+                }
             }
         });
 
-        xhr.addEventListener('error', () => reject(new Error('Bağlantı hatası')));
-        xhr.addEventListener('timeout', () => reject(new Error('İstek zaman aşımına uğradı')));
+        xhr.addEventListener('error', () => reject(new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.')));
+        xhr.addEventListener('timeout', () => reject(new Error('İstek zaman aşımına uğradı. Dosya çok büyük olabilir, tekrar deneyin.')));
 
         xhr.timeout = options.timeout || 300000; // 5 dakika
         xhr.send(formData);
     });
+}
+
+// Guvenli fetch wrapper - JSON parse hatalarini yakalar
+async function safeFetch(url, options = {}) {
+    const defaultOpts = {
+        headers: { 'X-CSRFToken': getCSRFToken(), ...(options.headers || {}) }
+    };
+    const mergedOpts = { ...options, headers: defaultOpts.headers };
+
+    let response;
+    try {
+        response = await fetch(url, mergedOpts);
+    } catch (e) {
+        throw new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.');
+    }
+
+    if (response.status === 413) throw new Error('Dosya çok büyük!');
+    if (response.status === 429) throw new Error('Çok fazla istek. Lütfen bekleyin.');
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (e) {
+        if (response.status >= 500) {
+            throw new Error('Sunucu hatası oluştu (' + response.status + '). Lütfen tekrar deneyin.');
+        }
+        throw new Error('Sunucu yanıtı işlenemedi. Lütfen tekrar deneyin.');
+    }
+
+    if (!response.ok && data.error) {
+        throw new Error(data.error);
+    }
+
+    return data;
 }
 
 // Tab sistemi
@@ -200,7 +254,32 @@ function checkPasswordStrength(password) {
     return { level: 'strong', text: 'Güçlü', color: '#10b981' };
 }
 
-// ==================== PDF Onizleme ====================
+// ==================== PDF Onizleme (PDF.js + Server Fallback) ====================
+const _pdfDocCache = new Map();
+
+function _getPdfCacheKey(file) {
+    return file.name + '_' + file.size + '_' + file.lastModified;
+}
+
+async function _getPdfDoc(file) {
+    const key = _getPdfCacheKey(file);
+    if (_pdfDocCache.has(key)) return _pdfDocCache.get(key);
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    _pdfDocCache.set(key, pdf);
+
+    // Cache'i 20 dokumanda sinirla
+    if (_pdfDocCache.size > 20) {
+        const firstKey = _pdfDocCache.keys().next().value;
+        const oldDoc = _pdfDocCache.get(firstKey);
+        oldDoc.destroy();
+        _pdfDocCache.delete(firstKey);
+    }
+
+    return pdf;
+}
+
 async function loadPreview(file, previewContainer, options = {}) {
     const page = options.page || 0;
     const width = options.width || 400;
@@ -209,6 +288,53 @@ async function loadPreview(file, previewContainer, options = {}) {
     // Placeholder goster
     previewContainer.innerHTML = '<div class="skeleton" style="width:100%;height:300px;"></div>';
 
+    // PDF.js varsa istemci tarafinda render et (sunucuya yukleme yok, anlik sayfa gecisi)
+    if (typeof pdfjsLib !== 'undefined') {
+        try {
+            return await _loadPreviewClient(file, previewContainer, page, width, onLoad);
+        } catch (e) {
+            console.warn('PDF.js preview failed, falling back to server:', e.message);
+        }
+    }
+
+    // Fallback: sunucu tarafli preview
+    return await _loadPreviewServer(file, previewContainer, page, width, onLoad);
+}
+
+async function _loadPreviewClient(file, container, page, width, onLoad) {
+    const pdf = await _getPdfDoc(file);
+    const totalPages = pdf.numPages;
+    if (page >= totalPages) page = 0;
+
+    const pdfPage = await pdf.getPage(page + 1); // PDF.js 1-indexed
+    const viewport = pdfPage.getViewport({ scale: 1 });
+    const scale = width / viewport.width;
+    const scaledViewport = pdfPage.getViewport({ scale: scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
+    const ctx = canvas.getContext('2d');
+
+    await pdfPage.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+
+    // Canvas'i img'e cevir (overlay uyumu icin)
+    const img = document.createElement('img');
+    img.className = 'preview-page';
+    img.alt = (__('preview_page') || 'Sayfa') + ' ' + (page + 1);
+
+    const data = { success: true, total_pages: totalPages, page: page, width: scaledViewport.width, height: scaledViewport.height };
+
+    img.onload = function() { if (onLoad) onLoad(data); };
+    img.src = canvas.toDataURL('image/png');
+
+    container.innerHTML = '';
+    container.appendChild(img);
+
+    return data;
+}
+
+async function _loadPreviewServer(file, container, page, width, onLoad) {
     const formData = new FormData();
     formData.append('pdf_file', file);
     formData.append('page', page);
@@ -221,20 +347,18 @@ async function loadPreview(file, previewContainer, options = {}) {
         if (data.success) {
             const img = document.createElement('img');
             img.className = 'preview-page';
-            img.alt = __('preview_page') + ' ' + (page + 1);
-            img.onload = function() {
-                if (onLoad) onLoad(data);
-            };
-            previewContainer.innerHTML = '';
-            previewContainer.appendChild(img);
+            img.alt = (__('preview_page') || 'Sayfa') + ' ' + (page + 1);
+            img.onload = function() { if (onLoad) onLoad(data); };
+            container.innerHTML = '';
+            container.appendChild(img);
             img.src = data.image;
             return data;
         } else {
-            previewContainer.innerHTML = '<div class="preview-placeholder"><p>' + __('preview_load_error') + '</p></div>';
+            container.innerHTML = '<div class="preview-placeholder"><p>' + (__('preview_load_error') || 'Önizleme yüklenemedi') + '</p></div>';
             return null;
         }
     } catch (e) {
-        previewContainer.innerHTML = '<div class="preview-placeholder"><p>' + __('preview_error') + '</p></div>';
+        container.innerHTML = '<div class="preview-placeholder"><p>' + (__('preview_error') || 'Önizleme hatası') + '</p></div>';
         return null;
     }
 }

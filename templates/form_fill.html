@@ -241,15 +241,11 @@
         });
 
         try {
-            const resp = await fetch('/api/form-fill', {
+            const data = await safeFetch('/api/form-fill', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ job_id: jobId, fields: fields })
             });
-            const data = await resp.json();
 
             if (data.success) {
                 steps.setStep(2);

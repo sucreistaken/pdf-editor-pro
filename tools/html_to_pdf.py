@@ -111,8 +111,8 @@ def html_to_pdf_from_url(url, output_path, options=None):
         }
 
     # URL dogrulama
-    if not (url.startswith('http://') or url.startswith('https://')):
-        return {'success': False, 'error': 'Geçersiz URL formatı'}
+    if not url or not (url.startswith('http://') or url.startswith('https://')):
+        return {'success': False, 'error': 'Geçersiz URL formatı. URL "http://" veya "https://" ile başlamalıdır.'}
 
     pdf_options = _build_pdf_options(options)
 
@@ -136,13 +136,17 @@ def html_to_pdf_from_url(url, output_path, options=None):
         error_msg = str(e)
         if 'Timeout' in error_msg or 'timeout' in error_msg:
             logger.warning(f"html_to_pdf_from_url timeout: {url}")
-            return {'success': False, 'error': 'Sayfa yüklenirken zaman aşımı (30 saniye). URL\'yi kontrol edin.'}
+            return {'success': False, 'error': 'Sayfa yüklenirken zaman aşımı (30 saniye). Sayfa çok büyük veya yavaş olabilir.'}
         if 'net::ERR_NAME_NOT_RESOLVED' in error_msg:
-            return {'success': False, 'error': 'Alan adı bulunamadı. URL\'yi kontrol edin.'}
+            return {'success': False, 'error': f'Alan adı bulunamadı: {url.split("/")[2] if "/" in url else url}. URL\'yi kontrol edin.'}
         if 'net::ERR_CONNECTION_REFUSED' in error_msg:
-            return {'success': False, 'error': 'Bağlantı reddedildi. Site erişilebilir değil.'}
+            return {'success': False, 'error': 'Bağlantı reddedildi. Site erişilebilir değil veya güvenlik duvarı engelliyor olabilir.'}
+        if 'net::ERR_CERT' in error_msg or 'SSL' in error_msg:
+            return {'success': False, 'error': 'SSL sertifika hatası. Sitenin güvenlik sertifikası geçersiz.'}
+        if 'net::ERR_TOO_MANY_REDIRECTS' in error_msg:
+            return {'success': False, 'error': 'Çok fazla yönlendirme. Site düzgün yapılandırılmamış.'}
         logger.error(f"html_to_pdf_from_url error: {e}", exc_info=True)
-        return {'success': False, 'error': 'URL dönüştürme başarısız oldu'}
+        return {'success': False, 'error': 'URL dönüştürme başarısız oldu. Sayfanın erişilebilir olduğundan emin olun.'}
 
 
 def _build_pdf_options(options):
